@@ -3,7 +3,7 @@
 
 **No bloat. Just clean protection. Built for themes and developers.**
 
-[![Version](https://img.shields.io/badge/stable-v1.1-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
+[![Version](https://img.shields.io/badge/stable-v1.2-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
