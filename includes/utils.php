@@ -128,3 +128,21 @@ function init_plugin_suite_content_protector_replace_keywords( $content, $conten
 
     return $content;
 }
+
+// Check if current user should be excluded from content protection based on roles
+function init_plugin_suite_content_protector_is_excluded_for_current_user( $option = null ) {
+    if ( null === $option ) {
+        $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+    }
+
+    if ( empty( $option['excluded_roles'] ) || ! is_user_logged_in() ) {
+        return false;
+    }
+
+    $user = wp_get_current_user();
+    if ( empty( $user->roles ) || ! is_array( $user->roles ) ) {
+        return false;
+    }
+
+    return (bool) array_intersect( $user->roles, (array) $option['excluded_roles'] );
+}

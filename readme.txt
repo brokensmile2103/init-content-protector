@@ -2,9 +2,9 @@
 Contributors: brokensmile.2103
 Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1
+Stable tag: 1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,14 @@ Yes. You can set a custom key per site for added security.
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.2 – November 14, 2025 =
+- Added option to **exclude specific user roles** from all protection layers (encryption, JS protection, noise injection, keyword cloaking)
+- Implemented role-based bypass at both **filter level** and **asset enqueue level** for consistent behavior across frontend
+- Refactored protection flow so encryption, JS protection, and noise injection operate **independently**, preventing unwanted coupling
+- Improved script enqueue logic to load CryptoJS **only when encryption is enabled**
+- Optimized hook processing to avoid unnecessary filtering for excluded roles and unsupported post types
+- Ensured clean fallback behavior when mixed protection settings are enabled
 
 = 1.1 – August 16, 2025 =
 - Changed minimum WordPress requirement to 5.7 to leverage wp_get_inline_script_tag for safer inline script output

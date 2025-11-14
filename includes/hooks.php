@@ -19,6 +19,14 @@ function init_plugin_suite_content_protector_filter_post_content( $content ) {
 
     // Lấy cấu hình plugin
     $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+
+    // Nếu user thuộc nhóm bị loại trừ => trả nguyên content, không đụng gì cả
+    if ( function_exists( 'init_plugin_suite_content_protector_is_excluded_for_current_user' )
+        && init_plugin_suite_content_protector_is_excluded_for_current_user( $option )
+    ) {
+        return $content;
+    }
+    
     $allowed_post_types = $option['post_types'] ?? [];
 
     // Kiểm tra post type có được bảo vệ không

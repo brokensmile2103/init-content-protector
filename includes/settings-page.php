@@ -33,6 +33,7 @@ function init_plugin_suite_content_protector_sanitize_settings( $input ) {
     $output['js_protect']       = ! empty( $input['js_protect'] ) ? '1' : '0';
     $output['inject_noise']     = ! empty( $input['inject_noise'] ) ? '1' : '0';
     $output['keywords']         = isset( $input['keywords'] ) ? sanitize_text_field( $input['keywords'] ) : '';
+    $output['excluded_roles']   = array_map( 'sanitize_key', (array) ( $input['excluded_roles'] ?? [] ) );
 
     return $output;
 }
@@ -44,6 +45,9 @@ function init_plugin_suite_content_protector_render_settings_page() {
 
     $post_types = get_post_types( ['public' => true], 'objects' );
     unset( $post_types['attachment'] );
+
+    $selected_roles = $option['excluded_roles'] ?? [];
+    $roles          = function_exists( 'get_editable_roles' ) ? get_editable_roles() : wp_roles()->roles;
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Init Content Protector Settings', 'init-content-protector' ); ?></h1>
@@ -141,6 +145,26 @@ function init_plugin_suite_content_protector_render_settings_page() {
                         <p class="description">
                             <?php esc_html_e( 'Enter keywords to hide. Separate by commas. Example: <code>dragon ball,one piece,naruto</code>', 'init-content-protector' ); ?><br>
                             <?php esc_html_e( 'These will be replaced visually using CSS pseudo-elements and hidden from raw HTML.', 'init-content-protector' ); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Exclude User Roles', 'init-content-protector' ); ?></th>
+                    <td>
+                        <fieldset>
+                            <?php foreach ( $roles as $role_key => $role_data ) : ?>
+                                <label>
+                                    <input type="checkbox"
+                                           name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[excluded_roles][]"
+                                           value="<?php echo esc_attr( $role_key ); ?>"
+                                        <?php checked( in_array( $role_key, $selected_roles, true ) ); ?>>
+                                    <?php echo esc_html( translate_user_role( $role_data['name'] ) ); ?>
+                                </label><br>
+                            <?php endforeach; ?>
+                        </fieldset>
+                        <p class="description">
+                            <?php esc_html_e( 'Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content.', 'init-content-protector' ); ?>
                         </p>
                     </td>
                 </tr>

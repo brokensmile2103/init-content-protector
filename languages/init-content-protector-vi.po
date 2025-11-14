@@ -87,3 +87,9 @@ msgstr "Để đạt hiệu quả tối ưu, nên kết hợp nhiều lớp bả
 
 msgid "This plugin does not prevent content theft 100%. It raises the difficulty level for scraping."
 msgstr "Plugin này không thể ngăn chặn 100% hành vi sao chép nội dung. Nó chỉ giúp tăng độ khó cho các công cụ quét nội dung."
+
+msgid "Exclude User Roles"
+msgstr "Không áp dụng đối với các quyền"
+
+msgid "Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content."
+msgstr "Bảo vệ nội dung sẽ không áp dụng cho các quyền này. Người dùng thuộc các quyền đã chọn sẽ luôn thấy nội dung gốc, không bị bảo vệ."

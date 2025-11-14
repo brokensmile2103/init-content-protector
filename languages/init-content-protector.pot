@@ -87,3 +87,9 @@ msgstr ""
 
 msgid "This plugin does not prevent content theft 100%. It raises the difficulty level for scraping."
 msgstr ""
+
+msgid "Exclude User Roles"
+msgstr ""
+
+msgid "Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content."
+msgstr ""
