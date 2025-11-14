@@ -3,7 +3,7 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.2
+ * Version: 1.3
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.2' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.3' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG',           'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION',         'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_URL',            plugin_dir_url( __FILE__ ) );
@@ -62,59 +62,84 @@ function init_plugin_suite_content_protector_maybe_enqueue_noise_css() {
     );
 }
 
-add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_maybe_enqueue_encrypt_scripts', 100 );
-function init_plugin_suite_content_protector_maybe_enqueue_encrypt_scripts() {
+add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_encryption', 100 );
+function init_plugin_suite_content_protector_enqueue_encryption() {
     if ( is_admin() ) {
         return;
     }
 
     $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
 
-    // Skip all script-level protection for excluded roles.
+    // Skip for excluded roles
     if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $option ) ) {
         return;
     }
 
-    $encrypt_mode       = ! empty( $option['content_mode'] ) && $option['content_mode'] === 'encrypt';
-    $js_protect_enabled = ! empty( $option['js_protect'] ) && $option['js_protect'] === '1';
-
-    // If neither encryption nor JS protection is enabled, do nothing.
-    if ( ! $encrypt_mode && ! $js_protect_enabled ) {
+    $encrypt_mode = ! empty( $option['content_mode'] ) && $option['content_mode'] === 'encrypt';
+    if ( ! $encrypt_mode ) {
         return;
     }
 
-    // Only load crypto library when encryption is active.
-    if ( $encrypt_mode ) {
-        wp_enqueue_script(
-            'init-content-protector-crypto',
-            INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/crypto-js.min.js',
-            [],
-            INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
-            true
-        );
-    }
-
+    // Load crypto + decrypt
     wp_enqueue_script(
-        'init-content-protector-script',
-        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/script.js',
-        $encrypt_mode ? [ 'init-content-protector-crypto' ] : [],
+        'init-content-protector-crypto',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/crypto-js.min.js',
+        [],
         INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
         true
     );
 
-    // Prepare data for JS side.
-    $decryption_key = '';
-    if ( $encrypt_mode ) {
-        $key            = ! empty( $option['encrypt_key'] ) ? $option['encrypt_key'] : INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ENCRYPT_KEY;
-        $decryption_key = base64_encode( $key );
-    }
+    wp_enqueue_script(
+        'init-content-protector-decrypt',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/decrypt.js',
+        [ 'init-content-protector-crypto' ],
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+        true
+    );
+
+    $key = ! empty( $option['encrypt_key'] ) ? $option['encrypt_key'] : INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ENCRYPT_KEY;
 
     wp_localize_script(
-        'init-content-protector-script',
+        'init-content-protector-decrypt',
+        'InitContentDecryptData',
+        [
+            'decryption_key'   => base64_encode( $key ),
+            'content_selector' => $option['content_selector'] ?? '.entry-content',
+        ]
+    );
+}
+
+add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_js_protect', 101 );
+function init_plugin_suite_content_protector_enqueue_js_protect() {
+    if ( is_admin() ) {
+        return;
+    }
+
+    $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+
+    // Skip for excluded roles
+    if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $option ) ) {
+        return;
+    }
+
+    $js_protect_enabled = ! empty( $option['js_protect'] ) && $option['js_protect'] === '1';
+    if ( ! $js_protect_enabled ) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'init-content-protector-js',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/content-protector.js',
+        [],
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+        true
+    );
+
+    wp_localize_script(
+        'init-content-protector-js',
         'InitContentProtectorData',
         [
-            'decryption_key'             => $decryption_key,
-            'jsContentProtectionEnabled' => $js_protect_enabled,
+            'jsContentProtectionEnabled' => true,
             'content_selector'           => $option['content_selector'] ?? '.entry-content',
         ]
     );

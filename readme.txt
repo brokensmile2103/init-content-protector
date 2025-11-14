@@ -4,7 +4,7 @@ Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2
+Stable tag: 1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,14 @@ Yes. You can set a custom key per site for added security.
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.3 – November 15, 2025 =
+- Fully decoupled **encryption** and **JS content protection** into separate script modules (`decrypt.js` and `content-protector.js`)
+- Split script loading into **two independent wp_enqueue_scripts hooks**, eliminating unwanted cross-dependencies
+- Renamed localized JS object for encryption to **InitContentDecryptData** for clearer separation of responsibilities
+- Ensured JS protection (block copy, right-click, print, DevTools) works independently even when encryption is disabled
+- Improved maintainability by isolating crypto loading (`crypto-js.min.js`) strictly to encrypt mode
+- Refined initialization order to guarantee consistent behavior across all themes and page builders
 
 = 1.2 – November 14, 2025 =
 - Added option to **exclude specific user roles** from all protection layers (encryption, JS protection, noise injection, keyword cloaking)
