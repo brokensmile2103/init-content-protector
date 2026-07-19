@@ -3,13 +3,13 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.3
+ * Version: 1.4
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
  * Domain Path: /languages
  * Requires at least: 5.7
- * Tested up to: 6.9
+ * Tested up to: 7.0
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.3' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.4' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG',           'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION',         'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_URL',            plugin_dir_url( __FILE__ ) );
@@ -31,11 +31,12 @@ define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_KEYWORD_SALT',   'init_salt_' );
 
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'settings-page.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'utils.php';
+require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'rest-api.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'hooks.php';
 
 add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_maybe_enqueue_noise_css', 99 );
 function init_plugin_suite_content_protector_maybe_enqueue_noise_css() {
-    if ( is_admin() ) {
+    if ( is_admin() || init_plugin_suite_content_protector_is_amp_endpoint() ) {
         return;
     }
 
@@ -64,7 +65,7 @@ function init_plugin_suite_content_protector_maybe_enqueue_noise_css() {
 
 add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_encryption', 100 );
 function init_plugin_suite_content_protector_enqueue_encryption() {
-    if ( is_admin() ) {
+    if ( is_admin() || init_plugin_suite_content_protector_is_amp_endpoint() ) {
         return;
     }
 
@@ -97,21 +98,42 @@ function init_plugin_suite_content_protector_enqueue_encryption() {
         true
     );
 
-    $key = ! empty( $option['encrypt_key'] ) ? $option['encrypt_key'] : INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ENCRYPT_KEY;
+    // 'inline' (default, backward-compatible): key is base64'd directly into
+    //   page HTML. Simple, works everywhere, but trivially readable via
+    //   view-source — documented as a soft deterrent only.
+    // 'rest' (opt-in "Enhanced"): key is fetched client-side (Vanilla JS
+    //   fetch()) from a REST API endpoint after page load. Keeps the key
+    //   out of cached/static HTML. Still not real secrecy (any browser that
+    //   executes the JS can get it) but raises the bar for naive scrapers
+    //   and plays nicely with full-page cache plugins since the fetch
+    //   happens dynamically, outside the cached HTML. Not rate-limited by
+    //   the plugin itself (see includes/rest-api.php for why per-IP
+    //   transients were deliberately avoided) — add server/CDN/WAF-level
+    //   limiting if that matters for your site.
+    $delivery = ( ! empty( $option['encrypt_delivery'] ) && 'rest' === $option['encrypt_delivery'] ) ? 'rest' : 'inline';
 
-    wp_localize_script(
-        'init-content-protector-decrypt',
-        'InitContentDecryptData',
-        [
-            'decryption_key'   => base64_encode( $key ),
-            'content_selector' => $option['content_selector'] ?? '.entry-content',
-        ]
-    );
+    $data = [
+        'content_selector' => $option['content_selector'] ?? '.entry-content',
+        // Only surface console warnings to admins so we don't spam real
+        // visitors' consoles when a theme's selector doesn't match.
+        'debug'             => current_user_can( 'manage_options' ),
+    ];
+
+    if ( 'rest' === $delivery ) {
+        $data['rest_url'] = esc_url_raw( rest_url( 'init-content-protector/v1/key' ) );
+        $data['nonce']    = wp_create_nonce( 'wp_rest' );
+        $data['post_id']  = get_the_ID();
+    } else {
+        $key = ! empty( $option['encrypt_key'] ) ? $option['encrypt_key'] : INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ENCRYPT_KEY;
+        $data['decryption_key'] = base64_encode( $key );
+    }
+
+    wp_localize_script( 'init-content-protector-decrypt', 'InitContentDecryptData', $data );
 }
 
 add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_js_protect', 101 );
 function init_plugin_suite_content_protector_enqueue_js_protect() {
-    if ( is_admin() ) {
+    if ( is_admin() || init_plugin_suite_content_protector_is_amp_endpoint() ) {
         return;
     }
 
@@ -143,4 +165,16 @@ function init_plugin_suite_content_protector_enqueue_js_protect() {
             'content_selector'           => $option['content_selector'] ?? '.entry-content',
         ]
     );
+}
+
+// ==========================
+// Settings link
+// ==========================
+
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'init_plugin_suite_content_protector_add_settings_link');
+// Add a "Settings" link to the plugin row in the Plugins admin screen
+function init_plugin_suite_content_protector_add_settings_link($links) {
+    $settings_link = '<a href="' . admin_url('options-general.php?page=' . INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG) . '">' . __('Settings', 'init-content-protector') . '</a>';
+    array_unshift($links, $settings_link);
+    return $links;
 }

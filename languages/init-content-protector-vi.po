@@ -7,6 +7,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "Init Content Protector"
+msgstr "Init Content Protector"
+
+msgid "Settings"
+msgstr "Cài đặt"
+
 msgid "A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption."
 msgstr "Một plugin nhẹ giúp bảo vệ nội dung bài viết của bạn khỏi bị sao chép, quét dữ liệu và kiểm tra. Các tính năng bao gồm bảo vệ sao chép, ẩn từ khóa, chèn nhiễu và mã hóa toàn bộ nội dung."
 
@@ -93,3 +99,36 @@ msgstr "Không áp dụng đối với các quyền"
 
 msgid "Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content."
 msgstr "Bảo vệ nội dung sẽ không áp dụng cho các quyền này. Người dùng thuộc các quyền đã chọn sẽ luôn thấy nội dung gốc, không bị bảo vệ."
+
+msgid "Decryption Key Delivery"
+msgstr "Cách giao Key giải mã"
+
+msgid "Inline (default)"
+msgstr "Trực tiếp trong HTML (mặc định)"
+
+msgid "Enhanced (fetch key via REST API after page load)"
+msgstr "Nâng cao (lấy key qua REST API sau khi trang tải xong)"
+
+msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
+msgstr "Chế độ Trực tiếp nhúng key thẳng vào HTML (đơn giản, chạy được mọi nơi, nhưng đọc được qua view-source). Chế độ Nâng cao lấy key qua REST API endpoint, giữ key khỏi HTML tĩnh/cache — chống scraper cơ bản tốt hơn và tương thích với cache toàn trang. Cả hai chế độ đều không giúp nội dung thực sự bí mật với người dùng cố tình chạy JavaScript của trang. Endpoint này không giới hạn tốc độ (rate-limit) từ phía plugin; dùng server/CDN/WAF nếu bro cần điều đó."
+
+msgid "Auto-detect"
+msgstr "Tự động dò"
+
+msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s"
+msgstr "CSS selector để xác định khung chứa nội dung. Dùng cho giải mã và bảo vệ JS. Ví dụ: %s"
+
+msgid "\"Auto-detect\" loads your most recent published post in the background and tests common theme selectors against it."
+msgstr "\"Tự động dò\" sẽ tải ngầm bài viết mới nhất của bạn và thử các selector phổ biến của theme trên đó."
+
+msgid "Enter keywords to hide. Separate by commas. Example: %s"
+msgstr "Nhập từ khóa cần ẩn. Phân cách bằng dấu phẩy. Ví dụ: %s"
+
+msgid "Noise Injection Rate"
+msgstr "Tỉ lệ Chèn Nhiễu"
+
+msgid "Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%."
+msgstr "Tỉ lệ (theo mỗi từ) chèn một đoạn nhiễu. Giá trị càng cao càng gây rối crawler nhưng cũng thêm nhiều mã ẩn vào trang. Từ 1–50%, mặc định 7%."
+
+msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
+msgstr "Init Content Protector: máy chủ này không hỗ trợ mã hóa (thiếu OpenSSL hoặc PBKDF2). Đang hiển thị nội dung không được bảo vệ. Thông báo này chỉ hiển thị cho quản trị viên."

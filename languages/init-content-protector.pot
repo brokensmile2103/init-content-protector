@@ -7,6 +7,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+msgid "Init Content Protector"
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
 msgid "A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption."
 msgstr ""
 
@@ -92,4 +98,37 @@ msgid "Exclude User Roles"
 msgstr ""
 
 msgid "Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content."
+msgstr ""
+
+msgid "Decryption Key Delivery"
+msgstr ""
+
+msgid "Inline (default)"
+msgstr ""
+
+msgid "Enhanced (fetch key via REST API after page load)"
+msgstr ""
+
+msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
+msgstr ""
+
+msgid "Auto-detect"
+msgstr ""
+
+msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s"
+msgstr ""
+
+msgid "\"Auto-detect\" loads your most recent published post in the background and tests common theme selectors against it."
+msgstr ""
+
+msgid "Enter keywords to hide. Separate by commas. Example: %s"
+msgstr ""
+
+msgid "Noise Injection Rate"
+msgstr ""
+
+msgid "Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%."
+msgstr ""
+
+msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
 msgstr ""

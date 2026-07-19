@@ -8,9 +8,7 @@
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 // Option name used in settings-page.php
-$option_name = defined( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION' )
-    ? INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION
-    : 'init_content_protector_settings';
+$option_name = 'init_plugin_suite_content_protector_settings';
 
 // Delete plugin option
 delete_option( $option_name );

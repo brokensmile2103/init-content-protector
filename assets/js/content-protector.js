@@ -135,13 +135,6 @@
         }
     }, { passive: false, capture: true });
     
-    // Monitor cho việc mở dev tools
-    let devtools = {
-        open: false,
-        orientation: null
-    };
-
-    
     // Khởi tạo bảo vệ
     blockPrint();
     protectElements(container, false);

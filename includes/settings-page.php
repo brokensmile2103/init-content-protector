@@ -23,15 +23,70 @@ function init_plugin_suite_content_protector_register_settings() {
     );
 }
 
+add_action( 'admin_enqueue_scripts', 'init_plugin_suite_content_protector_admin_assets' );
+function init_plugin_suite_content_protector_admin_assets( $hook ) {
+    if ( 'settings_page_' . INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG !== $hook ) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'init-content-protector-admin',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/admin-settings.js',
+        [],
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+        true
+    );
+
+    // Grab one published post as a live sample page to test candidate
+    // content-wrapper selectors against, so admins on unfamiliar themes
+    // don't have to inspect HTML by hand to fill in "Content Selector".
+    $sample_posts = get_posts( [
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'numberposts'    => 1,
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+        'no_found_rows'  => true,
+    ] );
+    $sample_url = ! empty( $sample_posts ) ? get_permalink( $sample_posts[0] ) : home_url( '/' );
+
+    wp_localize_script(
+        'init-content-protector-admin',
+        'InitContentProtectorAdmin',
+        [
+            'sample_url' => $sample_url,
+            // Common content-wrapper selectors across popular themes/builders.
+            'candidates' => [
+                '.entry-content',
+                '.post-content',
+                '.elementor-widget-theme-post-content',
+                '.td-post-content',
+                '.single-post-content',
+                'article .content',
+                'main article',
+                '.content-area .entry-content',
+                '#content article',
+            ],
+            'i18n' => [
+                'detecting' => __( 'Detecting…', 'init-content-protector' ),
+                'notFound'  => __( 'No matching selector found on the sample page. Please enter it manually.', 'init-content-protector' ),
+                'fetchFail' => __( 'Could not load the sample page to auto-detect. Please enter the selector manually.', 'init-content-protector' ),
+            ],
+        ]
+    );
+}
+
 function init_plugin_suite_content_protector_sanitize_settings( $input ) {
     $output = [];
 
     $output['post_types']       = array_map( 'sanitize_key', (array) ( $input['post_types'] ?? [] ) );
     $output['content_mode']     = in_array( $input['content_mode'] ?? 'none', ['none', 'encrypt'], true ) ? $input['content_mode'] : 'none';
     $output['encrypt_key']      = isset( $input['encrypt_key'] ) ? sanitize_text_field( $input['encrypt_key'] ) : '';
+    $output['encrypt_delivery'] = in_array( $input['encrypt_delivery'] ?? 'inline', [ 'inline', 'rest' ], true ) ? $input['encrypt_delivery'] : 'inline';
     $output['content_selector'] = isset( $input['content_selector'] ) ? sanitize_text_field( $input['content_selector'] ) : '.entry-content';
     $output['js_protect']       = ! empty( $input['js_protect'] ) ? '1' : '0';
     $output['inject_noise']     = ! empty( $input['inject_noise'] ) ? '1' : '0';
+    $output['noise_rate']       = isset( $input['noise_rate'] ) ? max( 1, min( 50, (int) $input['noise_rate'] ) ) : 7;
     $output['keywords']         = isset( $input['keywords'] ) ? sanitize_text_field( $input['keywords'] ) : '';
     $output['excluded_roles']   = array_map( 'sanitize_key', (array) ( $input['excluded_roles'] ?? [] ) );
 
@@ -101,10 +156,40 @@ function init_plugin_suite_content_protector_render_settings_page() {
                 </tr>
 
                 <tr>
+                    <th scope="row"><?php esc_html_e( 'Decryption Key Delivery', 'init-content-protector' ); ?></th>
+                    <td>
+                        <fieldset>
+                            <label>
+                                <input type="radio" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[encrypt_delivery]" value="inline" <?php checked( $option['encrypt_delivery'] ?? 'inline', 'inline' ); ?> />
+                                <?php esc_html_e( 'Inline (default)', 'init-content-protector' ); ?>
+                            </label><br>
+                            <label>
+                                <input type="radio" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[encrypt_delivery]" value="rest" <?php checked( $option['encrypt_delivery'] ?? 'inline', 'rest' ); ?> />
+                                <?php esc_html_e( 'Enhanced (fetch key via REST API after page load)', 'init-content-protector' ); ?>
+                            </label>
+                        </fieldset>
+                        <p class="description">
+                            <?php esc_html_e( 'Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page\'s own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that.', 'init-content-protector' ); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
                     <th scope="row"><label for="content_selector"><?php esc_html_e( 'Content Selector (for JS injection)', 'init-content-protector' ); ?></label></th>
                     <td>
                         <input type="text" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[content_selector]" id="content_selector" value="<?php echo esc_attr( $option['content_selector'] ?? '.entry-content' ); ?>" class="regular-text" />
-                        <p class="description"><?php esc_html_e( 'CSS selector to locate content wrapper. Used for decryption and JS protection. Example: <code>.entry-content</code>', 'init-content-protector' ); ?></p>
+                        <button type="button" id="icp-autodetect-selector" class="button"><?php esc_html_e( 'Auto-detect', 'init-content-protector' ); ?></button>
+                        <p class="description">
+                            <?php
+                            printf(
+                                /* translators: %s: example CSS selector wrapped in <code> */
+                                esc_html__( 'CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s', 'init-content-protector' ),
+                                '<code>.entry-content</code>'
+                            );
+                            ?>
+                            <br>
+                            <?php esc_html_e( '"Auto-detect" loads your most recent published post in the background and tests common theme selectors against it.', 'init-content-protector' ); ?>
+                        </p>
                     </td>
                 </tr>
 
@@ -137,13 +222,30 @@ function init_plugin_suite_content_protector_render_settings_page() {
                 </tr>
 
                 <tr>
+                    <th scope="row">
+                        <label for="noise_rate"><?php esc_html_e( 'Noise Injection Rate', 'init-content-protector' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[noise_rate]" id="noise_rate" min="1" max="50" value="<?php echo esc_attr( $option['noise_rate'] ?? 7 ); ?>" class="small-text" /> %
+                        <p class="description"><?php esc_html_e( 'Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%.', 'init-content-protector' ); ?></p>
+                    </td>
+                </tr>
+
+                <tr>
                     <th scope="row"><label for="keywords"><?php esc_html_e( 'Sensitive Keywords to Obscure', 'init-content-protector' ); ?></label></th>
                     <td>
                         <textarea name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[keywords]" id="keywords" rows="3" class="large-text"><?php
                             echo esc_textarea( $option['keywords'] ?? '' );
                         ?></textarea>
                         <p class="description">
-                            <?php esc_html_e( 'Enter keywords to hide. Separate by commas. Example: <code>dragon ball,one piece,naruto</code>', 'init-content-protector' ); ?><br>
+                            <?php
+                            printf(
+                                /* translators: %s: example comma-separated keyword list wrapped in <code> */
+                                esc_html__( 'Enter keywords to hide. Separate by commas. Example: %s', 'init-content-protector' ),
+                                '<code>dragon ball,one piece,naruto</code>'
+                            );
+                            ?>
+                            <br>
                             <?php esc_html_e( 'These will be replaced visually using CSS pseudo-elements and hidden from raw HTML.', 'init-content-protector' ); ?>
                         </p>
                     </td>

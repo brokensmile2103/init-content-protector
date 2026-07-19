@@ -2,9 +2,9 @@
 Contributors: brokensmile.2103
 Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.3
+Stable tag: 1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,23 @@ Yes. You can set a custom key per site for added security.
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.4 – July 20, 2026 =
+- Fixed a critical bug in noise injection: the previous logic split raw HTML on whitespace, so noise spans could be inserted in the middle of tag attributes (e.g. between `<img` and `src="..."`), corrupting markup and breaking layout. Noise is now only ever injected into plain text runs between tags, never inside a tag itself.
+- Noise injection now skips the entire contents of `<script>`, `<style>`, `<pre>`, `<textarea>`, `<code>`, `<select>`, `<option>`, `<title>`, and `<svg>` elements, since injecting spans there is invalid markup (breaks dropdowns, SVG rendering) or would corrupt whitespace-sensitive/non-visual content.
+- Added `aria-hidden="true"` to noise spans as defense-in-depth (display:none already hides them from screen readers, this guards against the CSS failing to load).
+- Added a configurable "Noise Injection Rate" setting (1–50%, default 7%, matching the previous hardcoded rate) instead of a fixed value in code.
+- Added an optional "Enhanced" decryption key delivery mode (`includes/rest-api.php`): fetches the key via a REST API endpoint after page load instead of embedding it directly in page HTML. Keeps the key out of cached/static HTML and plays nicely with full-page cache plugins. Default "Inline" mode is unchanged for backward compatibility. Deliberately not rate-limited via per-IP transients — that pattern creates one wp_options row per unique visitor/bot IP with no active garbage collection, which would bloat the database far worse than the scraping it aims to prevent. Use server/CDN/WAF-level rate limiting if needed.
+- Added transient caching for encrypted content, keyed to post ID + last-modified time + encryption key, avoiding redundant OpenSSL/PBKDF2 work on every single page view. Noise injection intentionally remains uncached since its per-request randomness is part of what makes it effective against scrapers.
+- Added graceful fallback when a host is missing OpenSSL or PBKDF2 support: previously encryption calls could fatal-error or silently show "Encryption failed" to every visitor; now the plugin fails open (shows real content to visitors, with an admin-only notice) instead of breaking the page.
+- Fixed a logic bug where a failed encryption result was still treated as truthy due to `wp_json_encode(false)` producing a non-empty string.
+- Reduced PBKDF2 salt size from 256 bytes to 32 bytes (standard, sufficient size) to cut unnecessary CPU cost server- and client-side.
+- Added AMP endpoint detection: protection (JS injection, encryption, noise CSS) is now skipped automatically on AMP pages instead of producing invalid AMP markup.
+- Added "Auto-detect" button next to Content Selector in settings: tests common theme/builder content-wrapper selectors against your most recent published post and fills in the field automatically.
+- Added console warnings (visible to administrators only) when the configured content selector isn't found on a page, to make misconfiguration easier to diagnose instead of failing silently.
+- Fixed a translation-escaping bug where `<code>` tags in two settings descriptions were rendered as literal text instead of formatted code.
+- Removed unused `devtools` variable in `content-protector.js`.
+- Added/updated `.pot` and Vietnamese `.po`/`.mo` translations for all new strings introduced in this release.
 
 = 1.3 – November 15, 2025 =
 - Fully decoupled **encryption** and **JS content protection** into separate script modules (`decrypt.js` and `content-protector.js`)
