@@ -44,7 +44,11 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 
 ## A Note on What This Plugin Can (and Can't) Do
 
-This plugin raises the difficulty of automated scraping — it does not, and cannot, make content theft impossible. A visitor who can read your content can always screenshot it, photograph the screen, or type it out by hand. Init Content Protector is built around that reality: every feature is designed to slow down bots and crawlers without adding unnecessary risk (like unbounded database growth) in the process of chasing unattainable "perfect" protection. Advanced DevTools Blocking and Anti-Screenshot Protection are no exception — both are heuristic, best-effort deterrents, off by default, and can occasionally misfire on unusual browsers/extensions or be bypassed by a determined user.
+This plugin raises the difficulty of automated scraping — it does not, and cannot, make content theft impossible. A visitor who can read your content can always screenshot it, photograph the screen, or type it out by hand.
+
+Init Content Protector is built around that reality: every feature is designed to slow down bots and crawlers without adding unnecessary risk (like unbounded database growth) in the process of chasing unattainable "perfect" protection.
+
+Advanced DevTools Blocking and Anti-Screenshot Protection are no exception — both are heuristic, best-effort deterrents, off by default, and can occasionally misfire on unusual browsers/extensions or be bypassed by a determined user.
 
 ## License
 
