@@ -4,7 +4,7 @@
 
 **No bloat. Just clean protection. Built for themes and developers.**
 
-[![Version](https://img.shields.io/badge/stable-v1.5-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
+[![Version](https://img.shields.io/badge/stable-v1.6-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
@@ -26,12 +26,13 @@ Use this plugin to harden your site's content visibility while maintaining a smo
   - **Enhanced delivery**: fetches the decryption key via a REST API endpoint after page load, keeping it out of cached/static HTML and playing nicely with full-page cache plugins
   - Encrypted output is cached per post (invalidated automatically on edit) to avoid redundant server-side crypto work on every page view
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
+  - **Headless Browser Detection** *(optional)* — withholds decryption from sessions that look like Puppeteer, Playwright, or Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor
 - **Keyword cloaking** using CSS pseudo-elements
 - **Invisible noise injection** to confuse crawlers
   - Only ever injected into plain text — never inside HTML tags, and never inside `<script>`, `<style>`, `<pre>`, `<textarea>`, `<code>`, `<select>`, `<option>`, `<title>`, or `<svg>`
   - Configurable injection rate (1–50%, default 7%)
 - **AMP-aware** — automatically skips protection on AMP endpoints instead of producing invalid markup
-- **Per-post-type configuration** and **Global Exceptions** — exclude selected user roles from every protection feature at once (content mode, JS protection, DevTools blocking, anti-screenshot, noise, keywords)
+- **Per-post-type configuration** and **Global Exceptions** — exclude selected user roles from every protection feature at once (content mode, JS protection, DevTools blocking, anti-screenshot, headless detection, noise, keywords)
 - **Custom encryption key** per site
 - **Custom content selector**, with an **Auto-detect** button in settings that tests common theme/builder selectors against your latest post
 - Vanilla JS + REST API architecture — no jQuery, no external dependencies beyond CryptoJS
@@ -48,7 +49,7 @@ This plugin raises the difficulty of automated scraping — it does not, and can
 
 Init Content Protector is built around that reality: every feature is designed to slow down bots and crawlers without adding unnecessary risk (like unbounded database growth) in the process of chasing unattainable "perfect" protection.
 
-Advanced DevTools Blocking and Anti-Screenshot Protection are no exception — both are heuristic, best-effort deterrents, off by default, and can occasionally misfire on unusual browsers/extensions or be bypassed by a determined user.
+Advanced DevTools Blocking, Anti-Screenshot Protection, and Headless Browser Detection are no exception — all three are heuristic, best-effort deterrents, off by default, and can occasionally misfire on unusual browsers/extensions or be bypassed by a determined user or well-configured automation tooling.
 
 ## License
 
