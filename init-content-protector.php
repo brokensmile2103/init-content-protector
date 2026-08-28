@@ -3,7 +3,7 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.5
+ * Version: 1.6
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.5' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.6' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG',           'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION',         'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_URL',            plugin_dir_url( __FILE__ ) );
@@ -90,10 +90,49 @@ function init_plugin_suite_content_protector_enqueue_encryption() {
         true
     );
 
+    $decrypt_deps = [ 'init-content-protector-crypto' ];
+
+    // Optional headless/automation-browser guard. First-party script (not a
+    // vendored third-party library) that scores several client-side
+    // automation signals (Puppeteer/Playwright/Selenium) and exposes
+    // window.InitContentHeadlessCheck, a Promise that decrypt.js awaits
+    // before decrypting. Only meaningful in Encrypt mode — hence living in
+    // this same function — since in "No Protection" mode the real content
+    // is already in the initial HTML response before any JS runs, leaving
+    // nothing left to withhold.
+    $headless_detect_enabled = ! empty( $option['headless_detect'] ) && $option['headless_detect'] === '1';
+    if ( $headless_detect_enabled ) {
+        wp_enqueue_script(
+            'init-content-protector-headless-detect',
+            INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/headless-detect.js',
+            [],
+            INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'init-content-protector-headless-detect',
+            'InitHeadlessDetectData',
+            [
+                // Only surface console warnings to admins, same rationale as
+                // InitContentDecryptData.debug below.
+                'debug' => current_user_can( 'manage_options' ),
+            ]
+        );
+
+        // Declaring this as a decrypt.js dependency guarantees its <script>
+        // tag prints first. Not strictly required for correctness — the
+        // window.InitContentHeadlessCheck Promise is created synchronously
+        // by headless-detect.js regardless of tag order, and is guaranteed
+        // to exist before DOMContentLoaded fires either way — but making
+        // the load order explicit here is clearer than relying on that.
+        $decrypt_deps[] = 'init-content-protector-headless-detect';
+    }
+
     wp_enqueue_script(
         'init-content-protector-decrypt',
         INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/decrypt.js',
-        [ 'init-content-protector-crypto' ],
+        $decrypt_deps,
         INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
         true
     );

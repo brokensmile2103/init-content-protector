@@ -30,34 +30,58 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    setTimeout(function () {
-        if (InitContentDecryptData.decryption_key) {
-            // Inline mode (default): key was base64'd directly into page HTML.
-            renderDecrypted(base64DecodeUnicode(InitContentDecryptData.decryption_key));
-            return;
-        }
+    function startDecryption() {
+        setTimeout(function () {
+            if (InitContentDecryptData.decryption_key) {
+                // Inline mode (default): key was base64'd directly into page HTML.
+                renderDecrypted(base64DecodeUnicode(InitContentDecryptData.decryption_key));
+                return;
+            }
 
-        if (InitContentDecryptData.rest_url && InitContentDecryptData.post_id) {
-            // REST API mode (opt-in "Enhanced" delivery): fetch the key from the
-            // REST API endpoint instead of embedding it in page HTML.
-            fetch(InitContentDecryptData.rest_url + '/' + InitContentDecryptData.post_id, {
-                headers: { 'X-WP-Nonce': InitContentDecryptData.nonce || '' }
-            })
-                .then(function (res) {
-                    return res.ok ? res.json() : Promise.reject(res.status);
+            if (InitContentDecryptData.rest_url && InitContentDecryptData.post_id) {
+                // REST API mode (opt-in "Enhanced" delivery): fetch the key from the
+                // REST API endpoint instead of embedding it in page HTML.
+                fetch(InitContentDecryptData.rest_url + '/' + InitContentDecryptData.post_id, {
+                    headers: { 'X-WP-Nonce': InitContentDecryptData.nonce || '' }
                 })
-                .then(function (data) {
-                    if (data && data.k) {
-                        renderDecrypted(base64DecodeUnicode(data.k));
-                    }
-                })
-                .catch(function (err) {
-                    if (InitContentDecryptData.debug) {
-                        console.error('[Init Content Protector] Failed to fetch decryption key:', err);
-                    }
-                });
-        }
-    }, 1000);
+                    .then(function (res) {
+                        return res.ok ? res.json() : Promise.reject(res.status);
+                    })
+                    .then(function (data) {
+                        if (data && data.k) {
+                            renderDecrypted(base64DecodeUnicode(data.k));
+                        }
+                    })
+                    .catch(function (err) {
+                        if (InitContentDecryptData.debug) {
+                            console.error('[Init Content Protector] Failed to fetch decryption key:', err);
+                        }
+                    });
+            }
+        }, 1000);
+    }
+
+    // Optional headless/automation-browser guard (assets/js/headless-detect.js,
+    // "Enable Headless Browser Detection" setting). When that script is
+    // loaded, it sets window.InitContentHeadlessCheck to a Promise resolving
+    // true if the session looks like Puppeteer/Playwright/Selenium. If so,
+    // startDecryption() is simply never called — the content stays on its
+    // loading skeleton for that session instead of being decrypted into the
+    // DOM. When the guard isn't enabled, InitContentHeadlessCheck is
+    // undefined and decryption proceeds exactly as before.
+    if (window.InitContentHeadlessCheck && typeof window.InitContentHeadlessCheck.then === 'function') {
+        window.InitContentHeadlessCheck.then(function (suspectedHeadless) {
+            if (suspectedHeadless) {
+                if (InitContentDecryptData.debug) {
+                    console.warn('[Init Content Protector] Headless/automation browser suspected — decryption withheld for this session.');
+                }
+                return;
+            }
+            startDecryption();
+        });
+    } else {
+        startDecryption();
+    }
 
     function base64DecodeUnicode(str) {
         return decodeURIComponent(atob(str).split('').map(function (c) {

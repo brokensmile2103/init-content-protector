@@ -83,6 +83,7 @@ function init_plugin_suite_content_protector_sanitize_settings( $input ) {
     $output['content_mode']     = in_array( $input['content_mode'] ?? 'none', ['none', 'encrypt'], true ) ? $input['content_mode'] : 'none';
     $output['encrypt_key']      = isset( $input['encrypt_key'] ) ? sanitize_text_field( $input['encrypt_key'] ) : '';
     $output['encrypt_delivery'] = in_array( $input['encrypt_delivery'] ?? 'inline', [ 'inline', 'rest' ], true ) ? $input['encrypt_delivery'] : 'inline';
+    $output['headless_detect']  = ! empty( $input['headless_detect'] ) ? '1' : '0';
     $output['content_selector'] = isset( $input['content_selector'] ) ? sanitize_text_field( $input['content_selector'] ) : '.entry-content';
     $output['js_protect']       = ! empty( $input['js_protect'] ) ? '1' : '0';
     $output['disable_devtool']  = ! empty( $input['disable_devtool'] ) ? '1' : '0';
@@ -172,6 +173,23 @@ function init_plugin_suite_content_protector_render_settings_page() {
                         </fieldset>
                         <p class="description">
                             <?php esc_html_e( 'Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page\'s own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that.', 'init-content-protector' ); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="headless_detect"><?php esc_html_e( 'Enable Headless Browser Detection', 'init-content-protector' ); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[headless_detect]" id="headless_detect" value="1" <?php checked( $option['headless_detect'] ?? '0', '1' ); ?>>
+                            <?php esc_html_e( 'Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium).', 'init-content-protector' ); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e( 'Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in "No Protection" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own.', 'init-content-protector' ); ?>
+                            <br>
+                            <?php esc_html_e( 'This raises the cost of automated scraping but cannot detect every setup — well-configured "stealth" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee.', 'init-content-protector' ); ?>
                         </p>
                     </td>
                 </tr>
@@ -320,7 +338,7 @@ function init_plugin_suite_content_protector_render_settings_page() {
                 <li><?php esc_html_e( 'JavaScript protection relies on client-side execution. It can be bypassed by experienced users.', 'init-content-protector' ); ?></li>
                 <li><?php esc_html_e( 'For best results, combine multiple protection layers (encryption, JS, keyword cloaking).', 'init-content-protector' ); ?></li>
                 <li><?php esc_html_e( 'This plugin does not prevent content theft 100%. It raises the difficulty level for scraping.', 'init-content-protector' ); ?></li>
-                <li><?php esc_html_e( 'DevTools blocking and anti-screenshot detection are heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user — treat them as an extra deterrent layer, not a guarantee.', 'init-content-protector' ); ?></li>
+                <li><?php esc_html_e( 'DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee.', 'init-content-protector' ); ?></li>
             </ul>
         </div>
     </div>

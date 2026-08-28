@@ -154,9 +154,6 @@ msgstr "Phát hiện các kiểu cuộn trang bất thường (scroll-jump) và 
 msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
 msgstr "Người đọc thật cuộn trang và thay đổi kích thước cửa sổ bình thường sẽ không bị ảnh hưởng. Hiệu ứng mờ sẽ tự biến mất sau vài giây, hoặc ngay khi tab được lấy lại focus."
 
-msgid "DevTools blocking and anti-screenshot detection are heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user — treat them as an extra deterrent layer, not a guarantee."
-msgstr "Chặn DevTools và phát hiện chụp màn hình là các cơ chế phỏng đoán, mang tính best-effort. Đôi khi có thể kích hoạt nhầm trên các trình duyệt/extension lạ, và vẫn có thể bị vượt qua bởi người dùng cố tình — hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."
-
 msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
 msgstr "⚠️ Đã phát hiện công cụ chụp màn hình hoặc quét dữ liệu tự động. Hành động đã bị chặn!"
 
@@ -165,3 +162,18 @@ msgstr "Ngoại lệ Toàn cục"
 
 msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
 msgstr "Cài đặt này áp dụng đồng thời cho tất cả tính năng bảo vệ trên trang này — Chế độ Bảo vệ Nội dung, Bảo vệ Nội dung bằng JavaScript, Chặn DevTools Nâng cao, Bảo vệ Chống chụp màn hình, Chèn từ nhiễu, và Từ khóa nhạy cảm. Các quyền được chọn sẽ được loại trừ hoàn toàn khỏi tất cả các tính năng đó cùng lúc và luôn thấy nội dung gốc, không bị bảo vệ — bạn không thể loại trừ một quyền khỏi riêng một tính năng."
+
+msgid "Enable Headless Browser Detection"
+msgstr "Bật Phát hiện Trình duyệt Tự động (Headless)"
+
+msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
+msgstr "Không giải mã nội dung cho các phiên trông giống trình duyệt tự động (Puppeteer, Playwright, Selenium)."
+
+msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
+msgstr "Chỉ có tác dụng khi Chế độ Bảo vệ Nội dung đang ở Mã hóa — không có tác dụng ở chế độ \"Không bảo vệ\" vì lúc đó không còn bước giải mã nào để giữ lại. Kết hợp nhiều tín hiệu tự động hóa phía client cùng lúc, nên một tín hiệu báo nhầm đơn lẻ không thể tự chặn nhầm người dùng thật."
+
+msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
+msgstr "Cách này làm tăng chi phí cho việc cào dữ liệu tự động, nhưng không thể phát hiện mọi thiết lập — công cụ tự động hóa kiểu \"stealth\" được cấu hình kỹ vẫn có thể né được từng tín hiệu riêng lẻ. Hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."
+
+msgid "DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee."
+msgstr "Chặn DevTools, phát hiện chụp màn hình, và phát hiện trình duyệt tự động (headless) đều là các cơ chế phỏng đoán, mang tính best-effort. Đôi khi có thể kích hoạt nhầm trên các trình duyệt/extension lạ, và vẫn có thể bị vượt qua bởi người dùng cố tình hoặc công cụ tự động hóa được cấu hình kỹ — hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."

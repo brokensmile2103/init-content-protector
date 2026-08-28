@@ -154,9 +154,6 @@ msgstr ""
 msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
 msgstr ""
 
-msgid "DevTools blocking and anti-screenshot detection are heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user — treat them as an extra deterrent layer, not a guarantee."
-msgstr ""
-
 msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
 msgstr ""
 
@@ -164,4 +161,19 @@ msgid "Global Exceptions"
 msgstr ""
 
 msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
+msgstr ""
+
+msgid "Enable Headless Browser Detection"
+msgstr ""
+
+msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
+msgstr ""
+
+msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
+msgstr ""
+
+msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
+msgstr ""
+
+msgid "DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee."
 msgstr ""

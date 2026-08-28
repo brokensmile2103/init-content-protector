@@ -4,7 +4,7 @@ Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5
+Stable tag: 1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,7 @@ GitHub repository: [https://github.com/brokensmile2103/init-content-protector](h
   - Inline delivery (default, simple) or Enhanced delivery (fetches the key via a REST API endpoint after page load — keeps it out of cached/static HTML, cache-plugin friendly)
   - Encrypted output is cached per post and auto-invalidated on edit, avoiding redundant crypto work on every page view
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
+  - Optional Headless Browser Detection: withholds decryption from sessions that look like Puppeteer/Playwright/Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor
 - Keyword cloaking using CSS pseudo-elements
 - Invisible noise injection to confuse crawlers — only ever injected into plain text, never inside HTML tags or inside `<script>`, `<style>`, `<pre>`, `<select>`, `<svg>`, and similar elements; injection rate is configurable (1–50%)
 - Automatic AMP detection — protection is skipped on AMP endpoints instead of producing invalid markup
@@ -71,11 +72,21 @@ Yes, via the "Noise Injection Rate" setting (1–50% per word, default 7%). Nois
 = Will Advanced DevTools Blocking or Anti-Screenshot Protection ever affect real visitors? =
 They're designed not to, but both are heuristic and best-effort like every other protection layer in this plugin. Advanced DevTools Blocking only reacts when it detects an open DevTools panel; Anti-Screenshot Protection only reacts to unusually large/instant scroll jumps or DevTools-style viewport changes, and its blur effect clears itself automatically after a few seconds or as soon as the tab regains focus. Neither is enabled by default.
 
+= What does Headless Browser Detection do, and when should I use it? =
+It's aimed at automated scraping tools built on Puppeteer, Playwright, or Selenium — the kind that run a real browser engine and read the DOM after your page renders, which the plugin's other protections (encryption, noise, keyword cloaking) can't stop on their own once the page is decrypted for them too. When enabled, it scores several client-side automation signals together (no single signal decides on its own) and, if the session looks automated, simply never triggers decryption — the content stays on its loading skeleton instead of appearing in the DOM. It only takes effect when Content Protection Mode is set to Encrypt, and it's off by default. Like every automation signal, well-configured "stealth" tooling can evade individual checks — this raises the cost of scraping, it doesn't guarantee blocking it.
+
 == Screenshots ==
 
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.6 – August 28, 2026 =
+- Added an optional "Enable Headless Browser Detection" setting for Encrypt mode. Runs a first-party client-side check for automation tooling (Puppeteer, Playwright, Selenium/WebDriver) — cumulative signals such as `navigator.webdriver`, leftover CDP/WebDriver artifacts, a software WebGL renderer, a Permissions API inconsistency, a webdriver leak through a dynamically-created iframe, and naive `navigator.webdriver` patch artifacts — and, if the session looks automated, simply withholds decryption instead of ever decrypting real content into the DOM for that session.
+- Scoring requires at least two signals together before triggering (no single flag, however strong, decides on its own), specifically to keep false positives low for real visitors on unusual or privacy-hardened browsers.
+- Only takes effect when Content Protection Mode is set to Encrypt — has no effect in "No Protection" mode, since the real content is already present in the initial HTML response before this (or any) JavaScript can run. Off by default.
+- Like Advanced DevTools Blocking and Anti-Screenshot Protection, this raises the cost of automated scraping rather than guaranteeing to block it: well-configured "stealth" automation setups can evade individual signals.
+- Added `.pot`/`.po` translations for the new setting. `.mo` intentionally not rebuilt as part of this change.
 
 = 1.5 – August 28, 2026 =
 - Added an optional "Enable Advanced DevTools Blocking" setting, powered by the third-party `disable-devtool` library (MIT licensed, vendored in `assets/js/disable-devtool.min.js`). Unlike "Enable JavaScript Content Protection", which only blocks a fixed set of keyboard shortcuts, this actively detects DevTools being opened through several different methods and reacts by closing or redirecting away from the tab. The library's own default fallback URL is the literal string "localhost" (a dead link on a live site), so the plugin overrides it to redirect to the site's homepage instead. Fully independent of "Enable JavaScript Content Protection" — either can be used alone or together. Off by default.
