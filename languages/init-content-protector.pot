@@ -97,9 +97,6 @@ msgstr ""
 msgid "Exclude User Roles"
 msgstr ""
 
-msgid "Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content."
-msgstr ""
-
 msgid "Decryption Key Delivery"
 msgstr ""
 
@@ -131,4 +128,40 @@ msgid "Chance (per word) of inserting a noise span. Higher values confuse crawle
 msgstr ""
 
 msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
+msgstr ""
+
+msgid "Advanced Browser Protection (Experimental)"
+msgstr ""
+
+msgid "Enable Advanced DevTools Blocking"
+msgstr ""
+
+msgid "Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab."
+msgstr ""
+
+msgid "Uses the third-party \"disable-devtool\" library alongside the basic protection above. Independent of \"Enable JavaScript Content Protection\" — use either one alone, or both together."
+msgstr ""
+
+msgid "When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead."
+msgstr ""
+
+msgid "Enable Anti-Screenshot Protection (Init AntiSnap)"
+msgstr ""
+
+msgid "Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning."
+msgstr ""
+
+msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
+msgstr ""
+
+msgid "DevTools blocking and anti-screenshot detection are heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user — treat them as an extra deterrent layer, not a guarantee."
+msgstr ""
+
+msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
+msgstr ""
+
+msgid "Global Exceptions"
+msgstr ""
+
+msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
 msgstr ""

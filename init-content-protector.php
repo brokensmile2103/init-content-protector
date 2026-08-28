@@ -3,13 +3,13 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.4
+ * Version: 1.5
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
  * Domain Path: /languages
  * Requires at least: 5.7
- * Tested up to: 7.0
+ * Tested up to: 7.1
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.4' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION',        '1.5' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG',           'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION',         'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_URL',            plugin_dir_url( __FILE__ ) );
@@ -165,6 +165,108 @@ function init_plugin_suite_content_protector_enqueue_js_protect() {
             'content_selector'           => $option['content_selector'] ?? '.entry-content',
         ]
     );
+}
+
+add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_disable_devtool', 102 );
+function init_plugin_suite_content_protector_enqueue_disable_devtool() {
+    if ( is_admin() || init_plugin_suite_content_protector_is_amp_endpoint() ) {
+        return;
+    }
+
+    $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+
+    // Skip for excluded roles
+    if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $option ) ) {
+        return;
+    }
+
+    $disable_devtool_enabled = ! empty( $option['disable_devtool'] ) && $option['disable_devtool'] === '1';
+    if ( ! $disable_devtool_enabled ) {
+        return;
+    }
+
+    // Third-party library (MIT licensed): https://github.com/theajack/disable-devtool
+    // Vendored as-is in assets/js/disable-devtool.min.js. Actively detects
+    // several different ways of opening browser DevTools (not just the
+    // keyboard shortcuts that content-protector.js already blocks) and
+    // reacts by closing the tab or redirecting away. This is independent
+    // of, and can be used with or without, "Enable JavaScript Content
+    // Protection" above.
+    wp_enqueue_script(
+        'init-content-protector-disable-devtool-lib',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/disable-devtool.min.js',
+        [],
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+        true
+    );
+
+    // Our own thin init wrapper (assets/js/disable-devtool-init.js) that
+    // calls the library with plugin-specific config, kept separate so a
+    // future library update can drop straight in without touching our code.
+    wp_enqueue_script(
+        'init-content-protector-disable-devtool-init',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/disable-devtool-init.js',
+        [ 'init-content-protector-disable-devtool-lib' ],
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+        true
+    );
+
+    // See the comment in disable-devtool-init.js: the library's own default
+    // fallback URL is the literal string "localhost", which is a dead link
+    // on a live site. We pass the site's homepage instead.
+    wp_localize_script(
+        'init-content-protector-disable-devtool-init',
+        'InitDisableDevtoolData',
+        [
+            'url' => esc_url_raw( home_url( '/' ) ),
+        ]
+    );
+}
+
+add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_antisnap', 103 );
+function init_plugin_suite_content_protector_enqueue_antisnap() {
+    if ( is_admin() || init_plugin_suite_content_protector_is_amp_endpoint() ) {
+        return;
+    }
+
+    $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+
+    // Skip for excluded roles
+    if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $option ) ) {
+        return;
+    }
+
+    $antisnap_enabled = ! empty( $option['antisnap'] ) && $option['antisnap'] === '1';
+    if ( ! $antisnap_enabled ) {
+        return;
+    }
+
+    // Third-party library (MIT licensed): "Init AntiSnap" by Init HTML.
+    // Vendored as its full, human-readable source in assets/js/init-antisnap.js
+    // (not minified — small enough that minifying it buys nothing worth
+    // sacrificing reviewability for). Watches for scroll-jump and
+    // viewport-resize patterns typical of automated screenshot/scraping
+    // tools and DevTools panels, and briefly blurs the page with a warning
+    // when detected. Independent of the other protection layers; real
+    // readers scrolling/resizing normally aren't affected (see the
+    // library's own header docblock for details).
+    wp_enqueue_script(
+        'init-content-protector-antisnap',
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/init-antisnap.js',
+        [],
+        INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+        true
+    );
+
+    // AntiSnap reads window.InitAntiSnapConfig synchronously as soon as its
+    // own script executes — it's a plain global, not wp_localize_script
+    // data — so this config object must be printed as an inline script
+    // BEFORE init-antisnap.js runs, hence position 'before'.
+    $config_js = 'window.InitAntiSnapConfig = ' . wp_json_encode( [
+        'ALERT_MESSAGE' => __( '⚠️ Automated screenshot or scraping tool detected. Action blocked!', 'init-content-protector' ),
+    ] ) . ';';
+
+    wp_add_inline_script( 'init-content-protector-antisnap', $config_js, 'before' );
 }
 
 // ==========================

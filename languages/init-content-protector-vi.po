@@ -97,9 +97,6 @@ msgstr "Plugin này không thể ngăn chặn 100% hành vi sao chép nội dung
 msgid "Exclude User Roles"
 msgstr "Không áp dụng đối với các quyền"
 
-msgid "Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content."
-msgstr "Bảo vệ nội dung sẽ không áp dụng cho các quyền này. Người dùng thuộc các quyền đã chọn sẽ luôn thấy nội dung gốc, không bị bảo vệ."
-
 msgid "Decryption Key Delivery"
 msgstr "Cách giao Key giải mã"
 
@@ -110,7 +107,7 @@ msgid "Enhanced (fetch key via REST API after page load)"
 msgstr "Nâng cao (lấy key qua REST API sau khi trang tải xong)"
 
 msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
-msgstr "Chế độ Trực tiếp nhúng key thẳng vào HTML (đơn giản, chạy được mọi nơi, nhưng đọc được qua view-source). Chế độ Nâng cao lấy key qua REST API endpoint, giữ key khỏi HTML tĩnh/cache — chống scraper cơ bản tốt hơn và tương thích với cache toàn trang. Cả hai chế độ đều không giúp nội dung thực sự bí mật với người dùng cố tình chạy JavaScript của trang. Endpoint này không giới hạn tốc độ (rate-limit) từ phía plugin; dùng server/CDN/WAF nếu bro cần điều đó."
+msgstr "Chế độ Trực tiếp nhúng key thẳng vào HTML (đơn giản, chạy được mọi nơi, nhưng đọc được qua view-source). Chế độ Nâng cao lấy key qua REST API endpoint, giữ key khỏi HTML tĩnh/cache — chống scraper cơ bản tốt hơn và tương thích với cache toàn trang. Cả hai chế độ đều không giúp nội dung thực sự bí mật với người dùng cố tình chạy JavaScript của trang. Endpoint này không giới hạn tốc độ (rate-limit) từ phía plugin; dùng server/CDN/WAF nếu bạn cần điều đó."
 
 msgid "Auto-detect"
 msgstr "Tự động dò"
@@ -132,3 +129,39 @@ msgstr "Tỉ lệ (theo mỗi từ) chèn một đoạn nhiễu. Giá trị càn
 
 msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
 msgstr "Init Content Protector: máy chủ này không hỗ trợ mã hóa (thiếu OpenSSL hoặc PBKDF2). Đang hiển thị nội dung không được bảo vệ. Thông báo này chỉ hiển thị cho quản trị viên."
+
+msgid "Advanced Browser Protection (Experimental)"
+msgstr "Bảo vệ Trình duyệt Nâng cao (Thử nghiệm)"
+
+msgid "Enable Advanced DevTools Blocking"
+msgstr "Bật Chặn DevTools Nâng cao"
+
+msgid "Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab."
+msgstr "Chủ động phát hiện khi DevTools của trình duyệt được mở (không chỉ qua phím tắt) và đóng hoặc chuyển hướng khỏi tab."
+
+msgid "Uses the third-party \"disable-devtool\" library alongside the basic protection above. Independent of \"Enable JavaScript Content Protection\" — use either one alone, or both together."
+msgstr "Sử dụng thư viện bên thứ ba \"disable-devtool\" song song với lớp bảo vệ cơ bản ở trên. Độc lập với \"Bật bảo vệ nội dung bằng JavaScript\" — có thể dùng riêng lẻ hoặc kết hợp cả hai."
+
+msgid "When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead."
+msgstr "Khi DevTools vẫn đang mở, script sẽ thử đóng tab; nếu trình duyệt chặn việc này (trường hợp phổ biến, vì hầu hết trình duyệt chỉ cho phép đóng tab mà chính script đó đã mở), nó sẽ chuyển hướng người dùng về trang chủ của bạn thay vào đó."
+
+msgid "Enable Anti-Screenshot Protection (Init AntiSnap)"
+msgstr "Bật Bảo vệ Chống chụp màn hình (Init AntiSnap)"
+
+msgid "Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning."
+msgstr "Phát hiện các kiểu cuộn trang bất thường (scroll-jump) và thay đổi layout do DevTools gây ra, vốn thường gặp ở các công cụ chụp màn hình hoặc quét dữ liệu tự động, sau đó làm mờ trang tạm thời kèm cảnh báo."
+
+msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
+msgstr "Người đọc thật cuộn trang và thay đổi kích thước cửa sổ bình thường sẽ không bị ảnh hưởng. Hiệu ứng mờ sẽ tự biến mất sau vài giây, hoặc ngay khi tab được lấy lại focus."
+
+msgid "DevTools blocking and anti-screenshot detection are heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user — treat them as an extra deterrent layer, not a guarantee."
+msgstr "Chặn DevTools và phát hiện chụp màn hình là các cơ chế phỏng đoán, mang tính best-effort. Đôi khi có thể kích hoạt nhầm trên các trình duyệt/extension lạ, và vẫn có thể bị vượt qua bởi người dùng cố tình — hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."
+
+msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
+msgstr "⚠️ Đã phát hiện công cụ chụp màn hình hoặc quét dữ liệu tự động. Hành động đã bị chặn!"
+
+msgid "Global Exceptions"
+msgstr "Ngoại lệ Toàn cục"
+
+msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
+msgstr "Cài đặt này áp dụng đồng thời cho tất cả tính năng bảo vệ trên trang này — Chế độ Bảo vệ Nội dung, Bảo vệ Nội dung bằng JavaScript, Chặn DevTools Nâng cao, Bảo vệ Chống chụp màn hình, Chèn từ nhiễu, và Từ khóa nhạy cảm. Các quyền được chọn sẽ được loại trừ hoàn toàn khỏi tất cả các tính năng đó cùng lúc và luôn thấy nội dung gốc, không bị bảo vệ — bạn không thể loại trừ một quyền khỏi riêng một tính năng."

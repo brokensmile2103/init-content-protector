@@ -85,6 +85,8 @@ function init_plugin_suite_content_protector_sanitize_settings( $input ) {
     $output['encrypt_delivery'] = in_array( $input['encrypt_delivery'] ?? 'inline', [ 'inline', 'rest' ], true ) ? $input['encrypt_delivery'] : 'inline';
     $output['content_selector'] = isset( $input['content_selector'] ) ? sanitize_text_field( $input['content_selector'] ) : '.entry-content';
     $output['js_protect']       = ! empty( $input['js_protect'] ) ? '1' : '0';
+    $output['disable_devtool']  = ! empty( $input['disable_devtool'] ) ? '1' : '0';
+    $output['antisnap']         = ! empty( $input['antisnap'] ) ? '1' : '0';
     $output['inject_noise']     = ! empty( $input['inject_noise'] ) ? '1' : '0';
     $output['noise_rate']       = isset( $input['noise_rate'] ) ? max( 1, min( 50, (int) $input['noise_rate'] ) ) : 7;
     $output['keywords']         = isset( $input['keywords'] ) ? sanitize_text_field( $input['keywords'] ) : '';
@@ -199,11 +201,45 @@ function init_plugin_suite_content_protector_render_settings_page() {
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[js_protect]" value="1" <?php checked( $option['js_protect'] ?? '0', '1' ); ?>>
+                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[js_protect]" id="js_protect" value="1" <?php checked( $option['js_protect'] ?? '0', '1' ); ?>>
                             <?php esc_html_e( 'Block printing, prevent right-click and text selection, and interfere with browser developer tools.', 'init-content-protector' ); ?>
                         </label>
                         <p class="description">
                             <?php esc_html_e( 'Blocks copying, selecting, printing, and inspecting content via JS. Includes right-click disable, keyboard shortcut blocking (Ctrl/⌘ + C, P, U, etc.), and DevTools interference.', 'init-content-protector' ); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr><th colspan="2"><h2><?php esc_html_e( 'Advanced Browser Protection (Experimental)', 'init-content-protector' ); ?></h2></th></tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="disable_devtool"><?php esc_html_e( 'Enable Advanced DevTools Blocking', 'init-content-protector' ); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[disable_devtool]" id="disable_devtool" value="1" <?php checked( $option['disable_devtool'] ?? '0', '1' ); ?>>
+                            <?php esc_html_e( 'Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab.', 'init-content-protector' ); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e( 'Uses the third-party "disable-devtool" library alongside the basic protection above. Independent of "Enable JavaScript Content Protection" — use either one alone, or both together.', 'init-content-protector' ); ?>
+                            <br>
+                            <?php esc_html_e( 'When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead.', 'init-content-protector' ); ?>
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th scope="row">
+                        <label for="antisnap"><?php esc_html_e( 'Enable Anti-Screenshot Protection (Init AntiSnap)', 'init-content-protector' ); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[antisnap]" id="antisnap" value="1" <?php checked( $option['antisnap'] ?? '0', '1' ); ?>>
+                            <?php esc_html_e( 'Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning.', 'init-content-protector' ); ?>
+                        </label>
+                        <p class="description">
+                            <?php esc_html_e( 'Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus.', 'init-content-protector' ); ?>
                         </p>
                     </td>
                 </tr>
@@ -214,7 +250,7 @@ function init_plugin_suite_content_protector_render_settings_page() {
                     </th>
                     <td>
                         <label>
-                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[inject_noise]" value="1" <?php checked( $option['inject_noise'] ?? '0', '1' ); ?>>
+                            <input type="checkbox" name="<?php echo esc_attr( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION ); ?>[inject_noise]" id="inject_noise" value="1" <?php checked( $option['inject_noise'] ?? '0', '1' ); ?>>
                             <?php esc_html_e( 'Insert invisible junk spans randomly to confuse crawlers.', 'init-content-protector' ); ?>
                         </label>
                         <p class="description"><?php esc_html_e( 'Invisible to real readers. Junk spans use display: none.', 'init-content-protector' ); ?></p>
@@ -251,6 +287,8 @@ function init_plugin_suite_content_protector_render_settings_page() {
                     </td>
                 </tr>
 
+                <tr><th colspan="2"><h2><?php esc_html_e( 'Global Exceptions', 'init-content-protector' ); ?></h2></th></tr>
+
                 <tr>
                     <th scope="row"><?php esc_html_e( 'Exclude User Roles', 'init-content-protector' ); ?></th>
                     <td>
@@ -266,7 +304,7 @@ function init_plugin_suite_content_protector_render_settings_page() {
                             <?php endforeach; ?>
                         </fieldset>
                         <p class="description">
-                            <?php esc_html_e( 'Content protection will not be applied for these roles. Selected roles will always see the original, unprotected content.', 'init-content-protector' ); ?>
+                            <?php esc_html_e( 'This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can\'t exclude a role from just one feature.', 'init-content-protector' ); ?>
                         </p>
                     </td>
                 </tr>
@@ -282,6 +320,7 @@ function init_plugin_suite_content_protector_render_settings_page() {
                 <li><?php esc_html_e( 'JavaScript protection relies on client-side execution. It can be bypassed by experienced users.', 'init-content-protector' ); ?></li>
                 <li><?php esc_html_e( 'For best results, combine multiple protection layers (encryption, JS, keyword cloaking).', 'init-content-protector' ); ?></li>
                 <li><?php esc_html_e( 'This plugin does not prevent content theft 100%. It raises the difficulty level for scraping.', 'init-content-protector' ); ?></li>
+                <li><?php esc_html_e( 'DevTools blocking and anti-screenshot detection are heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user — treat them as an extra deterrent layer, not a guarantee.', 'init-content-protector' ); ?></li>
             </ul>
         </div>
     </div>

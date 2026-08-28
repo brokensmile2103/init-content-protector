@@ -146,13 +146,30 @@ function init_plugin_suite_content_protector_keyword_to_class( $keyword, $conten
 // Output <style> to reconstruct hidden keywords via CSS
 add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_styles' );
 function init_plugin_suite_content_protector_enqueue_styles() {
-    // Tạo nội dung CSS
-    ob_start();
     global $post;
 
     $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+
+    // Skip for excluded roles, consistent with every other protection layer
+    // (encryption, JS protection, Advanced DevTools Blocking, Anti-Screenshot
+    // Protection, noise injection all check this already).
+    if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $option ) ) {
+        return;
+    }
+
     $keywords_raw = $option['keywords'] ?? '';
-    if ( empty( $keywords_raw ) || empty( $post->ID ) ) return;
+    if ( empty( $keywords_raw ) || empty( $post->ID ) ) {
+        return;
+    }
+
+    // ob_start() must come AFTER the guard clauses above, not before: the
+    // previous version opened the buffer unconditionally at the top of the
+    // function, then `return`ed early (with no matching ob_get_clean()) on
+    // any request where keywords aren't configured or $post isn't set —
+    // which is most front-end requests on most sites (archives, the
+    // homepage, any post with no keywords entered). That left an orphaned
+    // output buffer open for the rest of the request on every such request.
+    ob_start();
 
     $keywords = array_filter( array_map( 'trim', explode( ',', $keywords_raw ) ) );
     foreach ( $keywords as $keyword ) {

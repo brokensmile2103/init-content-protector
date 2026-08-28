@@ -2,9 +2,9 @@
 Contributors: brokensmile.2103
 Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.4
+Stable tag: 1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,14 +20,21 @@ GitHub repository: [https://github.com/brokensmile2103/init-content-protector](h
 
 **Features:**
 - JavaScript-based copy protection (blocks selection, right-click, print, DevTools access)
-- Full content encryption with client-side decryption using CryptoJS
+- Advanced DevTools blocking (optional, powered by the third-party `disable-devtool` library) — detects DevTools being opened through multiple methods, not just keyboard shortcuts, and closes or redirects away from the tab
+- Anti-screenshot / anti-scraping-tool detection (optional, powered by "Init AntiSnap") — flags scroll-jump and DevTools-triggered layout patterns typical of automated tools and briefly blurs the page with a warning
+- Full AES-256 content encryption with client-side decryption via CryptoJS
+  - Inline delivery (default, simple) or Enhanced delivery (fetches the key via a REST API endpoint after page load — keeps it out of cached/static HTML, cache-plugin friendly)
+  - Encrypted output is cached per post and auto-invalidated on edit, avoiding redundant crypto work on every page view
+  - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
 - Keyword cloaking using CSS pseudo-elements
-- Invisible noise injection to confuse crawlers
+- Invisible noise injection to confuse crawlers — only ever injected into plain text, never inside HTML tags or inside `<script>`, `<style>`, `<pre>`, `<select>`, `<svg>`, and similar elements; injection rate is configurable (1–50%)
+- Automatic AMP detection — protection is skipped on AMP endpoints instead of producing invalid markup
 - Per-post type configuration
+- Excluded user roles (protection never applies to selected roles)
 - Custom encryption key per site
-- Custom content selector support
+- Custom content selector support, with an Auto-detect button in settings
 
-Use this plugin to harden your site's content visibility while maintaining a smooth reading experience for real users.
+Use this plugin to harden your site's content visibility while maintaining a smooth reading experience for real users. Its goal is to deter casual bots and crawlers — not to stop a determined human, since anyone who can see content can always screenshot or retype it.
 
 == Installation ==
 
@@ -46,11 +53,39 @@ Yes. You can choose which post types are protected in the settings page.
 = Can I use my own encryption key? =
 Yes. You can set a custom key per site for added security.
 
+= What's the difference between "Inline" and "Enhanced" key delivery? =
+Inline embeds the decryption key directly in page HTML — simple and works everywhere, but readable via view-source. Enhanced fetches the key from a REST API endpoint after page load instead, keeping it out of cached/static HTML and working cleanly with full-page cache plugins. Neither mode makes content truly secret from a visitor running the page's own JavaScript — both are meant to raise the bar for casual scrapers, not stop a determined human.
+
+= Is the "Enhanced" REST API endpoint rate-limited? =
+No, intentionally. Rate-limiting by visitor IP would mean storing one database row per unique IP with no automatic cleanup — on a busy or bot-scanned site that bloats the database worse than the scraping it aims to prevent. If you need rate limiting, apply it at your server, CDN, or WAF layer.
+
+= Does this work with AMP? =
+The plugin automatically detects AMP endpoints and skips all protection there (JS injection, encryption, noise), since AMP doesn't allow the custom scripts these features rely on.
+
+= Can I control how much noise is injected? =
+Yes, via the "Noise Injection Rate" setting (1–50% per word, default 7%). Noise is only ever inserted into plain text — never inside HTML tags or inside elements like `<script>`, `<style>`, `<select>`, or `<svg>` — so it can't corrupt markup.
+
+= What's the difference between "Enable JavaScript Content Protection" and the new "Advanced DevTools Blocking" / "Anti-Screenshot Protection" options? =
+"Enable JavaScript Content Protection" is the plugin's original, lightweight protection: it blocks common keyboard shortcuts, right-click, text selection, and printing. "Advanced DevTools Blocking" adds a dedicated third-party detection library (`disable-devtool`) that recognizes DevTools being opened through several different methods beyond keyboard shortcuts, and reacts by closing or redirecting the tab. "Anti-Screenshot Protection" (Init AntiSnap) is a separate heuristic that watches for scroll-jump and layout-shift patterns typical of automated screenshot/scraping tools and briefly blurs the page instead. All three are independent — enable any combination that fits your site.
+
+= Will Advanced DevTools Blocking or Anti-Screenshot Protection ever affect real visitors? =
+They're designed not to, but both are heuristic and best-effort like every other protection layer in this plugin. Advanced DevTools Blocking only reacts when it detects an open DevTools panel; Anti-Screenshot Protection only reacts to unusually large/instant scroll jumps or DevTools-style viewport changes, and its blur effect clears itself automatically after a few seconds or as soon as the tab regains focus. Neither is enabled by default.
+
 == Screenshots ==
 
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.5 – August 28, 2026 =
+- Added an optional "Enable Advanced DevTools Blocking" setting, powered by the third-party `disable-devtool` library (MIT licensed, vendored in `assets/js/disable-devtool.min.js`). Unlike "Enable JavaScript Content Protection", which only blocks a fixed set of keyboard shortcuts, this actively detects DevTools being opened through several different methods and reacts by closing or redirecting away from the tab. The library's own default fallback URL is the literal string "localhost" (a dead link on a live site), so the plugin overrides it to redirect to the site's homepage instead. Fully independent of "Enable JavaScript Content Protection" — either can be used alone or together. Off by default.
+- Added an optional "Enable Anti-Screenshot Protection" setting, powered by "Init AntiSnap" (MIT licensed, vendored as its full, human-readable source in `assets/js/init-antisnap.js`). Watches for scroll-jump and DevTools-triggered viewport/resize patterns typical of automated screenshot and scraping tools, and briefly blurs the page with a translatable warning message when detected; the blur clears itself automatically after a few seconds or as soon as the tab regains focus. Off by default, independent of every other protection layer.
+- Both new options are grouped under a new "Advanced Browser Protection (Experimental)" section on the settings page, respect the existing "Exclude User Roles" setting, and are skipped on the admin area and on AMP endpoints — consistent with every other protection layer in the plugin.
+- Moved "Exclude User Roles" into its own new "Global Exceptions" section and reworded its description to explicitly list every feature it governs (Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, Sensitive Keywords), instead of the old wording that only mentioned "content protection" and could be misread as scoped to a single feature.
+- Fixed the keyword-cloaking CSS output (`::before` rules that visually reconstruct hidden keywords) to also respect "Exclude User Roles". Previously it was the only protection layer that ignored this setting, so an excluded role's page still received the keyword-reconstruction CSS even though their content was otherwise left unprotected.
+- Fixed a bug where that same CSS output function opened a PHP output buffer (`ob_start()`) before its early-return checks, leaving it unclosed on any front-end request with no keywords configured or no current post (i.e. most requests on most sites — archives, the homepage). Buffering is now only started once there's actually CSS to build.
+- Fixed two accessibility issues on the settings page where a `<label for="...">` didn't match any element `id` ("Enable JavaScript Content Protection" and "Inject Noise" checkboxes), which could stop browsers from autofilling correctly and broke the label/control association for assistive tech.
+- Added/updated `.pot` and Vietnamese `.po` translations for all strings introduced in this release. `.mo` intentionally not rebuilt as part of this change.
 
 = 1.4 – July 20, 2026 =
 - Fixed a critical bug in noise injection: the previous logic split raw HTML on whitespace, so noise spans could be inserted in the middle of tag attributes (e.g. between `<img` and `src="..."`), corrupting markup and breaking layout. Noise is now only ever injected into plain text runs between tags, never inside a tag itself.
@@ -110,6 +145,13 @@ Yes. You can set a custom key per site for added security.
 This plugin uses [CryptoJS](https://github.com/brix/crypto-js) for encryption.  
 - Minified version: `assets/js/crypto-js.min.js`  
 - Source version: [GitHub Repo](https://github.com/brix/crypto-js)
+
+This plugin optionally uses [disable-devtool](https://github.com/theajack/disable-devtool) (MIT licensed) for the "Enable Advanced DevTools Blocking" setting.
+- Minified version: `assets/js/disable-devtool.min.js`
+- Source version: [GitHub Repo](https://github.com/theajack/disable-devtool)
+
+This plugin optionally uses "Init AntiSnap" by Init HTML (MIT licensed) for the "Enable Anti-Screenshot Protection" setting.
+- Vendored as its full, human-readable source (not minified): `assets/js/init-antisnap.js`
 
 == License ==
 
