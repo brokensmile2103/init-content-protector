@@ -4,7 +4,7 @@
 
 **No bloat. Just clean protection. Built for themes and developers.**
 
-[![Version](https://img.shields.io/badge/stable-v1.6-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
+[![Version](https://img.shields.io/badge/stable-v1.7-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
@@ -18,16 +18,21 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 
 ## Features
 
-- **JavaScript-based copy protection** — blocks selection, right-click, print, and DevTools shortcuts
-- **Advanced DevTools Blocking** *(optional)* — powered by the third-party [disable-devtool](https://github.com/theajack/disable-devtool) library. Detects DevTools being opened through several different methods, not just keyboard shortcuts, and closes or redirects away from the tab
-- **Anti-Screenshot Protection** *(optional)* — powered by **Init AntiSnap**, vendored as full, human-readable source. Watches for scroll-jump and DevTools-triggered layout patterns typical of automated screenshot/scraping tools, and briefly blurs the page with a warning
-- **Full content encryption** (AES-256) with client-side decryption via CryptoJS
+- **JavaScript-based copy protection** — blocks selection, right-click, print, and DevTools / view-source / save shortcuts (Windows, Linux and macOS)
+  - Form fields, buttons and media players inside your content keep working
+  - Also covers content loaded later (infinite scroll, decrypted content)
+- **Advanced DevTools Blocking** *(optional)* — powered by the third-party [disable-devtool](https://github.com/theajack/disable-devtool) library. Detects DevTools being opened through several different methods, not just keyboard shortcuts, and redirects away from the tab. On the homepage itself the page is hidden instead, so a false detection can never cause an endless reload loop
+- **Anti-Screenshot Protection** *(optional)* — powered by **Init AntiSnap 6.0**, vendored as full, human-readable source. Recognizes the evenly spaced, step-by-step scrolling of scroll-and-stitch capture tools and DevTools full-size captures, and briefly blurs the page with a warning
+  - Does not react to find-in-page, anchor links, scrollbar dragging, scroll restoration, zooming, or pop-ups that lock page scrolling
+  - Small JS API for sites that scroll the page by themselves: `InitAntiSnap.trust(ms)`, `pause()`, `resume()`, `isDefending()`, `destroy()`
+- **Full content encryption** (AES-256) with client-side decryption via the browser's built-in **Web Crypto API**
+  - CryptoJS is only loaded on sites not served over HTTPS, or on demand as a fallback — no extra 60 KB download for everyone else
   - **Inline delivery** (default): simple, works everywhere
   - **Enhanced delivery**: fetches the decryption key via a REST API endpoint after page load, keeping it out of cached/static HTML and playing nicely with full-page cache plugins
-  - Encrypted output is cached per post (invalidated automatically on edit) to avoid redundant server-side crypto work on every page view
+  - Encrypted fresh on every request (about 0.3 ms thanks to a memoized key) — no database cache, so members-only or per-user content is never served to the wrong visitor
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
   - **Headless Browser Detection** *(optional)* — withholds decryption from sessions that look like Puppeteer, Playwright, or Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor
-- **Keyword cloaking** using CSS pseudo-elements
+- **Keyword cloaking** using CSS pseudo-elements — whole words only, Unicode aware, never inside HTML attributes or code blocks
 - **Invisible noise injection** to confuse crawlers
   - Only ever injected into plain text — never inside HTML tags, and never inside `<script>`, `<style>`, `<pre>`, `<textarea>`, `<code>`, `<select>`, `<option>`, `<title>`, or `<svg>`
   - Configurable injection rate (1–50%, default 7%)
@@ -35,13 +40,40 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 - **Per-post-type configuration** and **Global Exceptions** — exclude selected user roles from every protection feature at once (content mode, JS protection, DevTools blocking, anti-screenshot, headless detection, noise, keywords)
 - **Custom encryption key** per site
 - **Custom content selector**, with an **Auto-detect** button in settings that tests common theme/builder selectors against your latest post
-- Vanilla JS + REST API architecture — no jQuery, no external dependencies beyond CryptoJS
+- Vanilla JS + REST API architecture — no jQuery, no external dependencies beyond an optional CryptoJS fallback
+- Assets load only where needed — noise CSS and decryption scripts only on protected single views
 
 ## Installation
 
 1. Upload to `/wp-content/plugins/init-content-protector`
 2. Activate in WordPress admin
 3. Go to **Settings → Init Content Protector** and configure your preferred options
+
+## For Developers
+
+**Filters**
+
+- `init_plugin_suite_content_protector_load_cryptojs` — `bool`, whether to preload CryptoJS. Default: `! is_ssl()`
+- `init_plugin_suite_content_protector_decrypt_delay` — `int`, milliseconds to wait before rendering decrypted content. Default: `1000`
+
+**JavaScript events** (dispatched on `window`)
+
+- `init-content-decrypted` — fired for each protected block once decrypted; `event.detail.element` is the rendered content
+- `init-content-payload-ready` — kept for backward compatibility
+
+**Init AntiSnap config** — set `window.InitAntiSnapConfig` before the script runs; values you set take precedence over the plugin's defaults:
+
+```js
+window.InitAntiSnapConfig = {
+    ENABLE_ALERT: true,
+    ALERT_MESSAGE: 'Your custom warning here',
+    onDetect: function (reason) {
+        // reason: 'scroll' | 'devtools'
+    }
+};
+```
+
+If your own code scrolls the page in steps (auto page-turn readers, guided tours), call `InitAntiSnap.trust(3000)` before scrolling, or wrap it in `InitAntiSnap.pause()` / `InitAntiSnap.resume()`.
 
 ## A Note on What This Plugin Can (and Can't) Do
 
