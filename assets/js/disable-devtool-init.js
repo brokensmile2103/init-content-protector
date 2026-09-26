@@ -3,32 +3,82 @@
 // (disable-devtool.min.js, MIT licensed, https://github.com/theajack/disable-devtool).
 // Kept separate from the vendor file so our config lives in plugin code and
 // survives a future library update untouched.
+//
+// 1.7: custom ondevtoolopen handler. The library's own handler simply sets
+// location.href to the configured URL (the site's homepage). When the
+// visitor is already ON the homepage that becomes a reload loop: every
+// reload re-runs the detectors, a false positive (docked side panels,
+// some zoom levels, certain extensions) fires again, and the page reloads
+// forever. On the target page itself we now hide the page instead, and
+// show it again if the library later reports DevTools as closed.
 (function () {
+    'use strict';
+
     if (typeof DisableDevtool !== 'function') return;
     if (typeof InitDisableDevtoolData === 'undefined') return;
 
+    var target = InitDisableDevtoolData.url || '/';
+    var redirected = false;
+    var HIDE_ID = 'icp-devtool-hide';
+
+    // Compare origin + path only (query string and hash ignored), with a
+    // trailing slash treated as equal, so "/?utm=x" and "/#top" count as the
+    // homepage too.
+    var normalize = function (href) {
+        try {
+            var u = new URL(href, window.location.href);
+            return u.origin + (u.pathname.replace(/\/+$/, '') || '/');
+        } catch (err) {
+            return String(href);
+        }
+    };
+
+    var isOnTarget = function () {
+        return normalize(window.location.href) === normalize(target);
+    };
+
+    var hidePage = function () {
+        if (document.getElementById(HIDE_ID)) return;
+        var style = document.createElement('style');
+        style.id = HIDE_ID;
+        style.textContent = 'html body { visibility: hidden !important; }';
+        (document.head || document.documentElement).appendChild(style);
+    };
+
+    var showPage = function () {
+        var style = document.getElementById(HIDE_ID);
+        if (style && style.parentNode) style.parentNode.removeChild(style);
+    };
+
     DisableDevtool({
         // The library's own default fallback is the literal string
-        // "localhost" for the "close tab, else redirect" behavior (used
-        // when the browser blocks window.close() on a tab it didn't open
-        // itself, which is the common case). That default is harmless in
-        // local dev but a dead link on a live site, so PHP overrides it
-        // with the site's homepage — see InitDisableDevtoolData.url.
-        url: InitDisableDevtoolData.url,
+        // "localhost". PHP overrides it with the site's homepage — see
+        // InitDisableDevtoolData.url. Also kept here so the library's
+        // internals that read `url` behave exactly as before.
+        url: target,
 
-        // Everything else below is intentionally left at the library's own
-        // defaults rather than duplicated/overridden here:
-        // - disableMenu (right-click blocking, default true) already has a
-        //   redundant document-level handler from content-protector.js
-        //   when "Enable JavaScript Content Protection" is also on; two
-        //   listeners doing the same thing is harmless.
-        // - disableSelect / disableInputSelect / disableCopy / disableCut /
-        //   disablePaste stay at their default (off) here for the same
-        //   reason — that's content-protector.js's job, not this library's.
-        //   Turning them on here too would just add a second layer of the
-        //   same restriction with no extra benefit.
-        // - detectors / interval / clearIntervalWhenDevOpenTrigger: the
-        //   library ships sensible defaults (all detectors, 200ms poll,
-        //   keep monitoring after a trigger) that don't need second-guessing.
+        ondevtoolopen: function () {
+            if (isOnTarget()) {
+                hidePage();
+                return;
+            }
+
+            // The detector polls repeatedly; navigate only once.
+            if (redirected) return;
+            redirected = true;
+            window.location.href = target;
+        },
+
+        ondevtoolclose: function () {
+            if (isOnTarget()) showPage();
+        }
+
+        // Everything else is intentionally left at the library's defaults:
+        // - disableMenu (right-click blocking, default true) overlaps with
+        //   content-protector.js when that option is also on; harmless.
+        // - disableSelect / disableCopy / disableCut / disablePaste stay off:
+        //   that is content-protector.js's job.
+        // - detectors / interval / clearIntervalWhenDevOpenTrigger keep the
+        //   library's defaults.
     });
 })();

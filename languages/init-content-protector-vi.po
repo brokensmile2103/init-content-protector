@@ -2,178 +2,296 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Init Content Protector\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-27\n"
+"Last-Translator: \n"
+"Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-06-27\n"
+"PO-Revision-Date: 2026-09-26T12:41:00+00:00\n"
+"Language: vi\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
+#. Plugin Name of the plugin
+#: init-content-protector.php
+#: includes/settings-page.php:18
 msgid "Init Content Protector"
 msgstr "Init Content Protector"
 
+#: init-content-protector.php:373
 msgid "Settings"
 msgstr "Cài đặt"
 
+#. Description of the plugin
+#: init-content-protector.php
 msgid "A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption."
 msgstr "Một plugin nhẹ giúp bảo vệ nội dung bài viết của bạn khỏi bị sao chép, quét dữ liệu và kiểm tra. Các tính năng bao gồm bảo vệ sao chép, ẩn từ khóa, chèn nhiễu và mã hóa toàn bộ nội dung."
 
+#: includes/settings-page.php:17
+#: includes/settings-page.php:164
 msgid "Init Content Protector Settings"
 msgstr "Cài đặt Init Content Protector"
 
+#: includes/settings-page.php:169
 msgid "Content Protection"
 msgstr "Bảo vệ Nội dung"
 
+#: includes/settings-page.php:187
 msgid "Content Protection Mode"
 msgstr "Chế độ Bảo vệ Nội dung"
 
+#: includes/settings-page.php:192
 msgid "No Protection"
 msgstr "Không bảo vệ"
 
+#: includes/settings-page.php:196
 msgid "Encrypt Content (decode via JS)"
 msgstr "Mã hóa nội dung (giải mã bằng JavaScript)"
 
+#: includes/settings-page.php:200
 msgid "Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access."
 msgstr "Việc mã hóa nội dung giúp ngăn crawler đọc HTML gốc. Không nên bật nếu bạn cần SEO truy cập vào nội dung."
 
+#: includes/settings-page.php:272
 msgid "Enable JavaScript Content Protection"
 msgstr "Bật bảo vệ nội dung bằng JavaScript"
 
+#: includes/settings-page.php:277
 msgid "Block printing, prevent right-click and text selection, and interfere with browser developer tools."
 msgstr "Chặn in nội dung, vô hiệu hóa chuột phải và chọn văn bản, gây nhiễu công cụ phát triển trình duyệt."
 
+#: includes/settings-page.php:280
 msgid "Blocks copying, selecting, printing, and inspecting content via JS. Includes right-click disable, keyboard shortcut blocking (Ctrl/⌘ + C, P, U, etc.), and DevTools interference."
 msgstr "Chặn sao chép, chọn, in và kiểm tra nội dung bằng JavaScript. Gồm cả việc vô hiệu hóa chuột phải, chặn phím tắt (Ctrl/⌘ + C, P, U, v.v.), và gây nhiễu công cụ DevTools."
 
+#: includes/settings-page.php:325
 msgid "Inject Noise"
 msgstr "Chèn từ nhiễu"
 
+#: includes/settings-page.php:330
 msgid "Insert invisible junk spans randomly to confuse crawlers."
 msgstr "Chèn các đoạn mã vô hình vào ngẫu nhiên để gây nhiễu crawler."
 
+#: includes/settings-page.php:332
 msgid "Invisible to real readers. Junk spans use display: none."
 msgstr "Không ảnh hưởng đến người đọc thật. Các đoạn chèn sẽ bị ẩn bằng CSS."
 
+#: includes/settings-page.php:347
 msgid "Sensitive Keywords to Obscure"
 msgstr "Từ khóa nhạy cảm cần làm mờ"
 
-msgid "Enter keywords to hide. Separate by commas. Example: <code>dragon ball,one piece,naruto</code>"
-msgstr "Nhập các từ khóa cần ẩn, phân cách bằng dấu phẩy. Ví dụ: <code>dragon ball,one piece,naruto</code>"
-
+#: includes/settings-page.php:359
 msgid "These will be replaced visually using CSS pseudo-elements and hidden from raw HTML."
 msgstr "Chúng sẽ được thay thế bằng CSS (pseudo-element) và không xuất hiện trong mã HTML gốc."
 
+#: includes/settings-page.php:172
 msgid "Apply Protection to Post Types"
 msgstr "Áp dụng bảo vệ cho Post Type"
 
+#: includes/settings-page.php:182
 msgid "Choose which post types to apply content protection to."
 msgstr "Chọn post type cần áp dụng bảo vệ nội dung."
 
+#: includes/settings-page.php:208
 msgid "Custom Encryption Key"
 msgstr "Khóa mã hóa tùy chỉnh"
 
+#: includes/settings-page.php:211
 msgid "Use a unique key for this website. Leave blank to use default key from plugin constant."
 msgstr "Hãy dùng một khóa duy nhất cho website này. Để trống nếu muốn dùng khóa mặc định của plugin."
 
+#: includes/settings-page.php:252
 msgid "Content Selector (for JS injection)"
 msgstr "CSS Selector vùng nội dung (dùng cho JS)"
 
-msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: <code>.entry-content</code>"
-msgstr "CSS selector để xác định vùng bao nội dung. Dùng để giải mã và áp dụng bảo vệ bằng JavaScript. Ví dụ: <code>.entry-content</code>"
-
+#: includes/settings-page.php:388
 msgid "Important Notes When Using This Plugin:"
 msgstr "Các lưu ý quan trọng khi sử dụng plugin này:"
 
+#: includes/settings-page.php:390
 msgid "Use encryption only if you understand its impact on SEO, caching, and content accessibility."
 msgstr "Chỉ sử dụng chế độ mã hóa khi bạn hiểu rõ ảnh hưởng của nó đến SEO, bộ nhớ đệm và khả năng truy cập nội dung."
 
+#: includes/settings-page.php:391
 msgid "JavaScript protection relies on client-side execution. It can be bypassed by experienced users."
 msgstr "Bảo vệ bằng JavaScript hoạt động phía người dùng và có thể bị vượt qua bởi người dùng có kinh nghiệm."
 
+#: includes/settings-page.php:392
 msgid "For best results, combine multiple protection layers (encryption, JS, keyword cloaking)."
 msgstr "Để đạt hiệu quả tối ưu, nên kết hợp nhiều lớp bảo vệ (mã hóa, JS, làm mờ từ khóa)."
 
+#: includes/settings-page.php:393
 msgid "This plugin does not prevent content theft 100%. It raises the difficulty level for scraping."
 msgstr "Plugin này không thể ngăn chặn 100% hành vi sao chép nội dung. Nó chỉ giúp tăng độ khó cho các công cụ quét nội dung."
 
+#: includes/settings-page.php:367
 msgid "Exclude User Roles"
 msgstr "Không áp dụng đối với các quyền"
 
+#: includes/settings-page.php:216
 msgid "Decryption Key Delivery"
 msgstr "Cách giao Key giải mã"
 
+#: includes/settings-page.php:221
 msgid "Inline (default)"
 msgstr "Trực tiếp trong HTML (mặc định)"
 
+#: includes/settings-page.php:225
 msgid "Enhanced (fetch key via REST API after page load)"
 msgstr "Nâng cao (lấy key qua REST API sau khi trang tải xong)"
 
+#: includes/settings-page.php:229
 msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
 msgstr "Chế độ Trực tiếp nhúng key thẳng vào HTML (đơn giản, chạy được mọi nơi, nhưng đọc được qua view-source). Chế độ Nâng cao lấy key qua REST API endpoint, giữ key khỏi HTML tĩnh/cache — chống scraper cơ bản tốt hơn và tương thích với cache toàn trang. Cả hai chế độ đều không giúp nội dung thực sự bí mật với người dùng cố tình chạy JavaScript của trang. Endpoint này không giới hạn tốc độ (rate-limit) từ phía plugin; dùng server/CDN/WAF nếu bạn cần điều đó."
 
+#: includes/settings-page.php:255
 msgid "Auto-detect"
 msgstr "Tự động dò"
 
+#. translators: %s: example CSS selector wrapped in <code>
+#: includes/settings-page.php:260
+#, php-format
 msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s"
 msgstr "CSS selector để xác định khung chứa nội dung. Dùng cho giải mã và bảo vệ JS. Ví dụ: %s"
 
+#: includes/settings-page.php:265
 msgid "\"Auto-detect\" loads your most recent published post in the background and tests common theme selectors against it."
 msgstr "\"Tự động dò\" sẽ tải ngầm bài viết mới nhất của bạn và thử các selector phổ biến của theme trên đó."
 
+#. translators: %s: example comma-separated keyword list wrapped in <code>
+#: includes/settings-page.php:354
+#, php-format
 msgid "Enter keywords to hide. Separate by commas. Example: %s"
 msgstr "Nhập từ khóa cần ẩn. Phân cách bằng dấu phẩy. Ví dụ: %s"
 
+#: includes/settings-page.php:338
 msgid "Noise Injection Rate"
 msgstr "Tỉ lệ Chèn Nhiễu"
 
+#: includes/settings-page.php:342
 msgid "Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%."
 msgstr "Tỉ lệ (theo mỗi từ) chèn một đoạn nhiễu. Giá trị càng cao càng gây rối crawler nhưng cũng thêm nhiều mã ẩn vào trang. Từ 1–50%, mặc định 7%."
 
+#: includes/hooks.php:75
 msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
 msgstr "Init Content Protector: máy chủ này không hỗ trợ mã hóa (thiếu OpenSSL hoặc PBKDF2). Đang hiển thị nội dung không được bảo vệ. Thông báo này chỉ hiển thị cho quản trị viên."
 
+#: includes/settings-page.php:285
 msgid "Advanced Browser Protection (Experimental)"
 msgstr "Bảo vệ Trình duyệt Nâng cao (Thử nghiệm)"
 
+#: includes/settings-page.php:289
 msgid "Enable Advanced DevTools Blocking"
 msgstr "Bật Chặn DevTools Nâng cao"
 
+#: includes/settings-page.php:294
 msgid "Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab."
 msgstr "Chủ động phát hiện khi DevTools của trình duyệt được mở (không chỉ qua phím tắt) và đóng hoặc chuyển hướng khỏi tab."
 
+#: includes/settings-page.php:297
 msgid "Uses the third-party \"disable-devtool\" library alongside the basic protection above. Independent of \"Enable JavaScript Content Protection\" — use either one alone, or both together."
 msgstr "Sử dụng thư viện bên thứ ba \"disable-devtool\" song song với lớp bảo vệ cơ bản ở trên. Độc lập với \"Bật bảo vệ nội dung bằng JavaScript\" — có thể dùng riêng lẻ hoặc kết hợp cả hai."
 
+#: includes/settings-page.php:299
 msgid "When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead."
 msgstr "Khi DevTools vẫn đang mở, script sẽ thử đóng tab; nếu trình duyệt chặn việc này (trường hợp phổ biến, vì hầu hết trình duyệt chỉ cho phép đóng tab mà chính script đó đã mở), nó sẽ chuyển hướng người dùng về trang chủ của bạn thay vào đó."
 
+#: includes/settings-page.php:308
 msgid "Enable Anti-Screenshot Protection (Init AntiSnap)"
 msgstr "Bật Bảo vệ Chống chụp màn hình (Init AntiSnap)"
 
+#: includes/settings-page.php:313
 msgid "Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning."
 msgstr "Phát hiện các kiểu cuộn trang bất thường (scroll-jump) và thay đổi layout do DevTools gây ra, vốn thường gặp ở các công cụ chụp màn hình hoặc quét dữ liệu tự động, sau đó làm mờ trang tạm thời kèm cảnh báo."
 
+#: includes/settings-page.php:316
 msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
 msgstr "Người đọc thật cuộn trang và thay đổi kích thước cửa sổ bình thường sẽ không bị ảnh hưởng. Hiệu ứng mờ sẽ tự biến mất sau vài giây, hoặc ngay khi tab được lấy lại focus."
 
+#: init-content-protector.php:348
 msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
 msgstr "⚠️ Đã phát hiện công cụ chụp màn hình hoặc quét dữ liệu tự động. Hành động đã bị chặn!"
 
+#: includes/settings-page.php:364
 msgid "Global Exceptions"
 msgstr "Ngoại lệ Toàn cục"
 
+#: includes/settings-page.php:378
 msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
 msgstr "Cài đặt này áp dụng đồng thời cho tất cả tính năng bảo vệ trên trang này — Chế độ Bảo vệ Nội dung, Bảo vệ Nội dung bằng JavaScript, Chặn DevTools Nâng cao, Bảo vệ Chống chụp màn hình, Chèn từ nhiễu, và Từ khóa nhạy cảm. Các quyền được chọn sẽ được loại trừ hoàn toàn khỏi tất cả các tính năng đó cùng lúc và luôn thấy nội dung gốc, không bị bảo vệ — bạn không thể loại trừ một quyền khỏi riêng một tính năng."
 
+#: includes/settings-page.php:236
 msgid "Enable Headless Browser Detection"
 msgstr "Bật Phát hiện Trình duyệt Tự động (Headless)"
 
+#: includes/settings-page.php:241
 msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
 msgstr "Không giải mã nội dung cho các phiên trông giống trình duyệt tự động (Puppeteer, Playwright, Selenium)."
 
+#: includes/settings-page.php:244
 msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
 msgstr "Chỉ có tác dụng khi Chế độ Bảo vệ Nội dung đang ở Mã hóa — không có tác dụng ở chế độ \"Không bảo vệ\" vì lúc đó không còn bước giải mã nào để giữ lại. Kết hợp nhiều tín hiệu tự động hóa phía client cùng lúc, nên một tín hiệu báo nhầm đơn lẻ không thể tự chặn nhầm người dùng thật."
 
+#: includes/settings-page.php:246
 msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
 msgstr "Cách này làm tăng chi phí cho việc cào dữ liệu tự động, nhưng không thể phát hiện mọi thiết lập — công cụ tự động hóa kiểu \"stealth\" được cấu hình kỹ vẫn có thể né được từng tín hiệu riêng lẻ. Hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."
 
+#: includes/settings-page.php:394
 msgid "DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee."
 msgstr "Chặn DevTools, phát hiện chụp màn hình, và phát hiện trình duyệt tự động (headless) đều là các cơ chế phỏng đoán, mang tính best-effort. Đôi khi có thể kích hoạt nhầm trên các trình duyệt/extension lạ, và vẫn có thể bị vượt qua bởi người dùng cố tình hoặc công cụ tự động hóa được cấu hình kỹ — hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."
+
+#. Plugin URI of the plugin
+#: init-content-protector.php
+msgid "https://inithtml.com/plugin/init-content-protector/"
+msgstr "https://inithtml.com/plugin/init-content-protector/"
+
+#. Author of the plugin
+#: init-content-protector.php
+msgid "Init HTML"
+msgstr "Init HTML"
+
+#. Author URI of the plugin
+#: init-content-protector.php
+msgid "https://inithtml.com/"
+msgstr "https://inithtml.com/"
+
+#: includes/hooks.php:113
+msgid "Please enable JavaScript in your browser to read this content."
+msgstr "Vui lòng bật JavaScript trên trình duyệt để đọc nội dung này."
+
+#: includes/rest-api.php:77
+msgid "Invalid or expired request."
+msgstr "Yêu cầu không hợp lệ hoặc đã hết hạn."
+
+#: includes/rest-api.php:84
+msgid "Not available."
+msgstr "Không khả dụng."
+
+#: includes/rest-api.php:93
+#: includes/rest-api.php:97
+msgid "Not found."
+msgstr "Không tìm thấy."
+
+#: includes/settings-page.php:97
+msgid "Detecting…"
+msgstr "Đang dò tìm…"
+
+#: includes/settings-page.php:98
+msgid "No matching selector found on the sample page. Please enter it manually."
+msgstr "Không tìm thấy selector phù hợp trên trang mẫu. Vui lòng nhập thủ công."
+
+#: includes/settings-page.php:99
+msgid "Could not load the sample page to auto-detect. Please enter the selector manually."
+msgstr "Không thể tải trang mẫu để tự động dò tìm. Vui lòng nhập selector thủ công."
+
+#: includes/settings-page.php:202
+msgid "Decryption uses the browser's built-in Web Crypto API. The bundled CryptoJS fallback (about 60 KB) is only loaded on sites not served over HTTPS, or on demand in the rare browser without Web Crypto support."
+msgstr "Việc giải mã dùng Web Crypto API có sẵn của trình duyệt. Thư viện dự phòng CryptoJS đi kèm (khoảng 60 KB) chỉ được tải trên các site không chạy HTTPS, hoặc khi cần trên số ít trình duyệt không hỗ trợ Web Crypto."
+
+#: includes/settings-page.php:301
+msgid "On the homepage itself the page content is hidden instead of redirected, so a false detection can never cause an endless reload loop."
+msgstr "Ngay trên trang chủ, nội dung trang sẽ bị ẩn thay vì chuyển hướng, nên một lần phát hiện nhầm sẽ không bao giờ gây vòng lặp tải lại trang vô tận."
+
+#: includes/settings-page.php:318
+msgid "Init AntiSnap 6.0 only reacts to the evenly spaced, step-by-step jumps that scroll-and-stitch capture tools make — not to find-in-page, anchor links, scrollbar dragging, zooming, or pop-ups that lock page scrolling."
+msgstr "Init AntiSnap 6.0 chỉ phản ứng với các bước nhảy đều nhau, từng nấc một mà công cụ chụp cuộn-ghép tạo ra — không phản ứng với tìm kiếm trong trang, liên kết neo, kéo thanh cuộn, phóng to/thu nhỏ hay các popup khoá cuộn trang."

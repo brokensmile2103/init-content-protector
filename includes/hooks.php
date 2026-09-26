@@ -1,153 +1,123 @@
 <?php
+/**
+ * Front-end content filter.
+ *
+ * @package Init_Content_Protector
+ */
 
 defined( 'ABSPATH' ) || exit;
 
-// Hook với priority cao để chạy sau khi shortcode và caption đã được xử lý
+/*
+ * Runs late (priority 99) so shortcodes, blocks, captions, wpautop and
+ * wptexturize have all been applied first:
+ *   8 wpautop · 9 do_blocks · 10 wptexturize · 11 do_shortcode
+ *   12 wp_filter_content_tags · 99 this filter
+ */
 add_filter( 'the_content', 'init_plugin_suite_content_protector_filter_post_content', 99, 1 );
 
+/**
+ * Apply keyword cloaking, noise injection and encryption to post content.
+ *
+ * @param string $content Post content.
+ * @return string
+ */
 function init_plugin_suite_content_protector_filter_post_content( $content ) {
-    // Chỉ chạy trên frontend và single post
-    if ( is_admin() || ! is_singular() ) {
-        return $content;
-    }
+	if ( is_admin() || ! is_singular() || init_plugin_suite_content_protector_is_amp_endpoint() ) {
+		return $content;
+	}
 
-    // AMP pages don't allow custom/inline <script> — injecting our payload
-    // script or JS-protection script would make the page fail AMP validation.
-    // Skip entirely and serve normal content on AMP endpoints.
-    if ( function_exists( 'init_plugin_suite_content_protector_is_amp_endpoint' )
-        && init_plugin_suite_content_protector_is_amp_endpoint()
-    ) {
-        return $content;
-    }
+	global $post;
+	if ( ! $post instanceof WP_Post ) {
+		return $content;
+	}
 
-    // Lấy post hiện tại
-    global $post;
-    if ( ! $post ) {
-        return $content;
-    }
+	$settings = init_plugin_suite_content_protector_get_settings();
 
-    // Lấy cấu hình plugin
-    $option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, [] );
+	if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $settings )
+		|| ! init_plugin_suite_content_protector_is_protected_post( $post, $settings )
+	) {
+		return $content;
+	}
 
-    // Nếu user thuộc nhóm bị loại trừ => trả nguyên content, không đụng gì cả
-    if ( function_exists( 'init_plugin_suite_content_protector_is_excluded_for_current_user' )
-        && init_plugin_suite_content_protector_is_excluded_for_current_user( $option )
-    ) {
-        return $content;
-    }
-    
-    $allowed_post_types = $option['post_types'] ?? [];
+	$has_keywords = ! empty( init_plugin_suite_content_protector_get_keywords( $settings ) );
+	$has_noise    = init_plugin_suite_content_protector_is_enabled( $settings, 'inject_noise' );
 
-    // Kiểm tra post type có được bảo vệ không
-    if ( ! in_array( $post->post_type, $allowed_post_types, true ) ) {
-        return $content;
-    }
+	if ( $has_keywords ) {
+		init_plugin_suite_content_protector_ensure_keyword_css( $post->ID, $settings );
+	}
 
-    // Xử lý inject noise nếu được bật
-    if ( ! empty( $option['inject_noise'] ) && $option['inject_noise'] === '1' ) {
-        $content = init_plugin_suite_content_protector_inject_noise( $content );
-    }
+	if ( $has_noise ) {
+		init_plugin_suite_content_protector_enqueue_noise_style();
+	}
 
-    $content = init_plugin_suite_content_protector_replace_keywords( $content, $post->ID );
+	$content = init_plugin_suite_content_protector_transform_text( $content, $post->ID, $has_keywords, $has_noise, $settings );
 
-    // Xử lý encrypt mode
-    if ( ! empty( $option['content_mode'] ) && $option['content_mode'] == 'encrypt' ) {
+	if ( ! init_plugin_suite_content_protector_is_encrypt_mode( $settings ) ) {
+		return $content;
+	}
 
-        // Cache theo post_id + post_modified_gmt + encrypt_key. Key thay đổi
-        // tự động khi bài viết được sửa hoặc encrypt_key thay đổi — nên
-        // KHÔNG hash theo $content ở đây (content tại điểm này đã bị noise
-        // injection chèn chữ ngẫu nhiên theo mỗi request, nên hash sẽ đổi
-        // gần như mỗi request → tạo dòng transient mới liên tục → phình
-        // wp_options theo traffic/bot, đúng kiểu anti-pattern mà rate-limit
-        // theo IP đã mắc phải). Ở encrypt mode, toàn bộ content đã bị AES
-        // hóa nên noise "đông cứng" trong 12h không làm giảm khả năng chống
-        // bot: bot không giải mã được thì có noise hay không cũng như nhau.
-        $cache_key = 'icp_enc_' . $post->ID . '_' . md5(
-            $post->post_modified_gmt . '|' . ( $option['encrypt_key'] ?? '' )
-        );
-        $encrypted_json = get_transient( $cache_key );
+	/*
+	 * Encrypted fresh on every call. 1.4–1.6 cached the ciphertext in a
+	 * transient keyed only by post ID, which (a) served one visitor's
+	 * version of the content to everyone for 12 hours when a membership or
+	 * paywall plugin filters the_content differently per user, (b) ignored
+	 * keyword/noise setting changes, and (c) cost two database queries per
+	 * page view — more than the ~0.3 ms the encryption itself now takes,
+	 * since the PBKDF2 key derivation is memoized (see derive_key()).
+	 */
+	$encrypted_json = init_plugin_suite_content_protector_encrypt( $content, init_plugin_suite_content_protector_get_passphrase( $settings ) );
 
-        if ( false === $encrypted_json ) {
-            $encrypted_json = init_plugin_suite_content_protector_encrypt( $content );
-            if ( false !== $encrypted_json ) {
-                set_transient( $cache_key, $encrypted_json, 12 * HOUR_IN_SECONDS );
-            }
-        }
+	// Host lacks OpenSSL, or encryption failed: fail open so visitors still
+	// get the content instead of a permanently broken page.
+	if ( false === $encrypted_json ) {
+		if ( current_user_can( 'manage_options' ) ) {
+			return '<div class="icp-admin-notice uk-alert-danger">'
+				. esc_html__( 'Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators.', 'init-content-protector' )
+				. '</div>' . $content;
+		}
+		return $content;
+	}
 
-        // Host không hỗ trợ OpenSSL/PBKDF2, hoặc encrypt thất bại vì lý do khác.
-        // Fail-open: hiển thị nội dung gốc cho khách thay vì chặn hẳn trang —
-        // với plugin public dùng trên nhiều host khác nhau, "hiện nội dung thật"
-        // vẫn tốt hơn "hiện lỗi vĩnh viễn cho mọi khách truy cập".
-        if ( false === $encrypted_json ) {
-            if ( current_user_can( 'manage_options' ) ) {
-                return '<div class="uk-alert-danger">'
-                    . esc_html__( 'Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators.', 'init-content-protector' )
-                    . '</div>' . $content;
-            }
-            return $content;
-        }
+	// Covers protected posts rendered outside their own singular view.
+	init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, $post->ID );
 
-        // Không cần wpautop vì content đã được xử lý đầy đủ.
-        // $encrypted_json đã được đảm bảo là JSON string hợp lệ ở trên (early-return
-        // nếu false), nên wp_json_encode() ở đây luôn cho kết quả truthy — không cần
-        // nhánh else "Encryption failed" nữa (nhánh đó trước là dead code vì
-        // wp_json_encode(false) trả về chuỗi "false", vẫn truthy trong PHP, nên
-        // never actually triggered).
-        $encrypted = wp_json_encode( $encrypted_json );
-
-        // Chống chèn trùng (phòng khi filter chạy lại)
-        static $imc_payload_printed = false;
-        if ( ! $imc_payload_printed ) {
-            $imc_payload_printed = true;
-
-            // Tạo thẻ <script> in-line an toàn, không phụ thuộc enqueue
-            $js  = 'window.InitContentEncryptedPayload = ' . $encrypted . ';';
-            $js .= 'try{window.dispatchEvent(new CustomEvent("init-content-payload-ready"));}catch(e){}';
-
-            if ( function_exists( 'wp_get_inline_script_tag' ) ) {
-                // WP >= 5.7: tự thêm nonce/type chuẩn
-                $script_tag = wp_get_inline_script_tag(
-                    $js,
-                    [
-                        'id'   => 'init-content-protector-inline',
-                        'type' => 'text/javascript',
-                    ]
-                );
-            } else {
-                // Fallback cho WP cũ
-                $script_tag = '<script id="init-content-protector-inline" type="text/javascript">' . $js . '</script>';
-            }
-
-            // Ghép script vào đầu content để chắc chắn có payload sớm
-            $content = $script_tag
-                     . '<div class="imc-skeleton-line"></div>'
-                     . '<div class="imc-skeleton-line short"></div>'
-                     . '<div class="imc-skeleton-line"></div>'
-                     . '<div class="imc-skeleton-line"></div>'
-                     . '<div class="imc-skeleton-line short"></div>';
-            return $content;
-        }
-
-        // Nếu vì lý do nào đó đã in rồi, thì vẫn trả skeleton
-        $protected_content  = '<div class="imc-skeleton-line"></div>';
-        $protected_content .= '<div class="imc-skeleton-line short"></div>';
-        $protected_content .= '<div class="imc-skeleton-line"></div>';
-        $protected_content .= '<div class="imc-skeleton-line"></div>';
-        $protected_content .= '<div class="imc-skeleton-line short"></div>';
-        return $protected_content;
-
-    } else {
-        // Content đã được xử lý đầy đủ, không cần wpautop
-        return $content;
-    }
+	return init_plugin_suite_content_protector_render_encrypted_placeholder( $encrypted_json, $post->ID );
 }
 
-/*
-WordPress content processing priorities:
-Priority 8: wpautop
-Priority 9: do_blocks (Gutenberg blocks)
-Priority 10: Capital_P_dangit
-Priority 11: do_shortcode
-Priority 12: img_caption_shortcode
-Priority 99: Chạy sau tất cả để đảm bảo content đã được xử lý đầy đủ
-*/
+/**
+ * Render the placeholder that decrypt.js replaces with the real content.
+ *
+ * The payload lives in a non-executable JSON script block inside its own
+ * wrapper, instead of an inline script assigning a global. That means:
+ * - Every call gets its own payload. 1.6 printed the payload only on the
+ *   first the_content call of the request, so if an SEO/theme feature
+ *   called the_content earlier (e.g. to build a description), the real
+ *   content area got a skeleton with no payload and never decrypted.
+ * - decrypt.js swaps exactly this wrapper, instead of wiping everything
+ *   inside the Content Selector container (theme share buttons, pagination
+ *   and related-post blocks placed there no longer disappear).
+ * - It is not subject to Content-Security-Policy script-src rules.
+ *
+ * @param string $encrypted_json Encrypted payload (JSON).
+ * @param int    $post_id        Post ID.
+ * @return string
+ */
+function init_plugin_suite_content_protector_render_encrypted_placeholder( $encrypted_json, $post_id ) {
+	$skeleton = '<div class="imc-skeleton-line"></div>'
+		. '<div class="imc-skeleton-line short"></div>'
+		. '<div class="imc-skeleton-line"></div>'
+		. '<div class="imc-skeleton-line"></div>'
+		. '<div class="imc-skeleton-line short"></div>';
+
+	$noscript = '<noscript><p class="icp-noscript">'
+		. esc_html__( 'Please enable JavaScript in your browser to read this content.', 'init-content-protector' )
+		. '</p></noscript>';
+
+	// The payload only contains base64/hex and JSON punctuation, and
+	// wp_json_encode() escapes "/", so it cannot close the script element.
+	$payload = '<script type="application/json" class="icp-payload">' . $encrypted_json . '</script>';
+
+	return '<div class="icp-protected" data-icp-id="' . esc_attr( (string) (int) $post_id ) . '">'
+		. $skeleton . $noscript . $payload
+		. '</div>';
+}

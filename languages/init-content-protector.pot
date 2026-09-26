@@ -1,179 +1,299 @@
+# Copyright (C) 2026 Init HTML
+# This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Content Protector\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-27\n"
+"Project-Id-Version: Init Content Protector 1.7\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-content-protector\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-26T12:41:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: init-content-protector\n"
 
+#. Plugin Name of the plugin
+#: init-content-protector.php
+#: includes/settings-page.php:18
 msgid "Init Content Protector"
 msgstr ""
 
-msgid "Settings"
+#. Plugin URI of the plugin
+#: init-content-protector.php
+msgid "https://inithtml.com/plugin/init-content-protector/"
 msgstr ""
 
+#. Description of the plugin
+#: init-content-protector.php
 msgid "A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption."
 msgstr ""
 
-msgid "Init Content Protector Settings"
+#. Author of the plugin
+#: init-content-protector.php
+msgid "Init HTML"
 msgstr ""
 
-msgid "Content Protection"
+#. Author URI of the plugin
+#: init-content-protector.php
+msgid "https://inithtml.com/"
 msgstr ""
 
-msgid "Content Protection Mode"
-msgstr ""
-
-msgid "No Protection"
-msgstr ""
-
-msgid "Encrypt Content (decode via JS)"
-msgstr ""
-
-msgid "Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access."
-msgstr ""
-
-msgid "Enable JavaScript Content Protection"
-msgstr ""
-
-msgid "Block printing, prevent right-click and text selection, and interfere with browser developer tools."
-msgstr ""
-
-msgid "Blocks copying, selecting, printing, and inspecting content via JS. Includes right-click disable, keyboard shortcut blocking (Ctrl/⌘ + C, P, U, etc.), and DevTools interference."
-msgstr ""
-
-msgid "Inject Noise"
-msgstr ""
-
-msgid "Insert invisible junk spans randomly to confuse crawlers."
-msgstr ""
-
-msgid "Invisible to real readers. Junk spans use display: none."
-msgstr ""
-
-msgid "Sensitive Keywords to Obscure"
-msgstr ""
-
-msgid "Enter keywords to hide. Separate by commas. Example: <code>dragon ball,one piece,naruto</code>"
-msgstr ""
-
-msgid "These will be replaced visually using CSS pseudo-elements and hidden from raw HTML."
-msgstr ""
-
-msgid "Apply Protection to Post Types"
-msgstr ""
-
-msgid "Choose which post types to apply content protection to. Media is excluded."
-msgstr ""
-
-msgid "Custom Encryption Key"
-msgstr ""
-
-msgid "Use a unique key for this website. Leave blank to use default key from plugin constant."
-msgstr ""
-
-msgid "Content Selector (for JS injection)"
-msgstr ""
-
-msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: <code>.entry-content</code>"
-msgstr ""
-
-msgid "Important Notes When Using This Plugin:"
-msgstr ""
-
-msgid "Use encryption only if you understand its impact on SEO, caching, and content accessibility."
-msgstr ""
-
-msgid "JavaScript protection relies on client-side execution. It can be bypassed by experienced users."
-msgstr ""
-
-msgid "For best results, combine multiple protection layers (encryption, JS, keyword cloaking)."
-msgstr ""
-
-msgid "This plugin does not prevent content theft 100%. It raises the difficulty level for scraping."
-msgstr ""
-
-msgid "Exclude User Roles"
-msgstr ""
-
-msgid "Decryption Key Delivery"
-msgstr ""
-
-msgid "Inline (default)"
-msgstr ""
-
-msgid "Enhanced (fetch key via REST API after page load)"
-msgstr ""
-
-msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
-msgstr ""
-
-msgid "Auto-detect"
-msgstr ""
-
-msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s"
-msgstr ""
-
-msgid "\"Auto-detect\" loads your most recent published post in the background and tests common theme selectors against it."
-msgstr ""
-
-msgid "Enter keywords to hide. Separate by commas. Example: %s"
-msgstr ""
-
-msgid "Noise Injection Rate"
-msgstr ""
-
-msgid "Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%."
-msgstr ""
-
+#: includes/hooks.php:75
 msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
 msgstr ""
 
-msgid "Advanced Browser Protection (Experimental)"
+#: includes/hooks.php:113
+msgid "Please enable JavaScript in your browser to read this content."
 msgstr ""
 
-msgid "Enable Advanced DevTools Blocking"
+#: includes/rest-api.php:77
+msgid "Invalid or expired request."
 msgstr ""
 
-msgid "Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab."
+#: includes/rest-api.php:84
+msgid "Not available."
 msgstr ""
 
-msgid "Uses the third-party \"disable-devtool\" library alongside the basic protection above. Independent of \"Enable JavaScript Content Protection\" — use either one alone, or both together."
+#: includes/rest-api.php:93
+#: includes/rest-api.php:97
+msgid "Not found."
 msgstr ""
 
-msgid "When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead."
+#: includes/settings-page.php:17
+#: includes/settings-page.php:164
+msgid "Init Content Protector Settings"
 msgstr ""
 
-msgid "Enable Anti-Screenshot Protection (Init AntiSnap)"
+#: includes/settings-page.php:97
+msgid "Detecting…"
 msgstr ""
 
-msgid "Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning."
+#: includes/settings-page.php:98
+msgid "No matching selector found on the sample page. Please enter it manually."
 msgstr ""
 
-msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
+#: includes/settings-page.php:99
+msgid "Could not load the sample page to auto-detect. Please enter the selector manually."
 msgstr ""
 
-msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
+#: includes/settings-page.php:169
+msgid "Content Protection"
 msgstr ""
 
-msgid "Global Exceptions"
+#: includes/settings-page.php:172
+msgid "Apply Protection to Post Types"
 msgstr ""
 
-msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
+#: includes/settings-page.php:182
+msgid "Choose which post types to apply content protection to."
 msgstr ""
 
+#: includes/settings-page.php:187
+msgid "Content Protection Mode"
+msgstr ""
+
+#: includes/settings-page.php:192
+msgid "No Protection"
+msgstr ""
+
+#: includes/settings-page.php:196
+msgid "Encrypt Content (decode via JS)"
+msgstr ""
+
+#: includes/settings-page.php:200
+msgid "Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access."
+msgstr ""
+
+#: includes/settings-page.php:202
+msgid "Decryption uses the browser's built-in Web Crypto API. The bundled CryptoJS fallback (about 60 KB) is only loaded on sites not served over HTTPS, or on demand in the rare browser without Web Crypto support."
+msgstr ""
+
+#: includes/settings-page.php:208
+msgid "Custom Encryption Key"
+msgstr ""
+
+#: includes/settings-page.php:211
+msgid "Use a unique key for this website. Leave blank to use default key from plugin constant."
+msgstr ""
+
+#: includes/settings-page.php:216
+msgid "Decryption Key Delivery"
+msgstr ""
+
+#: includes/settings-page.php:221
+msgid "Inline (default)"
+msgstr ""
+
+#: includes/settings-page.php:225
+msgid "Enhanced (fetch key via REST API after page load)"
+msgstr ""
+
+#: includes/settings-page.php:229
+msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
+msgstr ""
+
+#: includes/settings-page.php:236
 msgid "Enable Headless Browser Detection"
 msgstr ""
 
+#: includes/settings-page.php:241
 msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
 msgstr ""
 
+#: includes/settings-page.php:244
 msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
 msgstr ""
 
+#: includes/settings-page.php:246
 msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
 msgstr ""
 
+#: includes/settings-page.php:252
+msgid "Content Selector (for JS injection)"
+msgstr ""
+
+#: includes/settings-page.php:255
+msgid "Auto-detect"
+msgstr ""
+
+#. translators: %s: example CSS selector wrapped in <code>
+#: includes/settings-page.php:260
+#, php-format
+msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s"
+msgstr ""
+
+#: includes/settings-page.php:265
+msgid "\"Auto-detect\" loads your most recent published post in the background and tests common theme selectors against it."
+msgstr ""
+
+#: includes/settings-page.php:272
+msgid "Enable JavaScript Content Protection"
+msgstr ""
+
+#: includes/settings-page.php:277
+msgid "Block printing, prevent right-click and text selection, and interfere with browser developer tools."
+msgstr ""
+
+#: includes/settings-page.php:280
+msgid "Blocks copying, selecting, printing, and inspecting content via JS. Includes right-click disable, keyboard shortcut blocking (Ctrl/⌘ + C, P, U, etc.), and DevTools interference."
+msgstr ""
+
+#: includes/settings-page.php:285
+msgid "Advanced Browser Protection (Experimental)"
+msgstr ""
+
+#: includes/settings-page.php:289
+msgid "Enable Advanced DevTools Blocking"
+msgstr ""
+
+#: includes/settings-page.php:294
+msgid "Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab."
+msgstr ""
+
+#: includes/settings-page.php:297
+msgid "Uses the third-party \"disable-devtool\" library alongside the basic protection above. Independent of \"Enable JavaScript Content Protection\" — use either one alone, or both together."
+msgstr ""
+
+#: includes/settings-page.php:299
+msgid "When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead."
+msgstr ""
+
+#: includes/settings-page.php:301
+msgid "On the homepage itself the page content is hidden instead of redirected, so a false detection can never cause an endless reload loop."
+msgstr ""
+
+#: includes/settings-page.php:308
+msgid "Enable Anti-Screenshot Protection (Init AntiSnap)"
+msgstr ""
+
+#: includes/settings-page.php:313
+msgid "Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning."
+msgstr ""
+
+#: includes/settings-page.php:316
+msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
+msgstr ""
+
+#: includes/settings-page.php:318
+msgid "Init AntiSnap 6.0 only reacts to the evenly spaced, step-by-step jumps that scroll-and-stitch capture tools make — not to find-in-page, anchor links, scrollbar dragging, zooming, or pop-ups that lock page scrolling."
+msgstr ""
+
+#: includes/settings-page.php:325
+msgid "Inject Noise"
+msgstr ""
+
+#: includes/settings-page.php:330
+msgid "Insert invisible junk spans randomly to confuse crawlers."
+msgstr ""
+
+#: includes/settings-page.php:332
+msgid "Invisible to real readers. Junk spans use display: none."
+msgstr ""
+
+#: includes/settings-page.php:338
+msgid "Noise Injection Rate"
+msgstr ""
+
+#: includes/settings-page.php:342
+msgid "Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%."
+msgstr ""
+
+#: includes/settings-page.php:347
+msgid "Sensitive Keywords to Obscure"
+msgstr ""
+
+#. translators: %s: example comma-separated keyword list wrapped in <code>
+#: includes/settings-page.php:354
+#, php-format
+msgid "Enter keywords to hide. Separate by commas. Example: %s"
+msgstr ""
+
+#: includes/settings-page.php:359
+msgid "These will be replaced visually using CSS pseudo-elements and hidden from raw HTML."
+msgstr ""
+
+#: includes/settings-page.php:364
+msgid "Global Exceptions"
+msgstr ""
+
+#: includes/settings-page.php:367
+msgid "Exclude User Roles"
+msgstr ""
+
+#: includes/settings-page.php:378
+msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
+msgstr ""
+
+#: includes/settings-page.php:388
+msgid "Important Notes When Using This Plugin:"
+msgstr ""
+
+#: includes/settings-page.php:390
+msgid "Use encryption only if you understand its impact on SEO, caching, and content accessibility."
+msgstr ""
+
+#: includes/settings-page.php:391
+msgid "JavaScript protection relies on client-side execution. It can be bypassed by experienced users."
+msgstr ""
+
+#: includes/settings-page.php:392
+msgid "For best results, combine multiple protection layers (encryption, JS, keyword cloaking)."
+msgstr ""
+
+#: includes/settings-page.php:393
+msgid "This plugin does not prevent content theft 100%. It raises the difficulty level for scraping."
+msgstr ""
+
+#: includes/settings-page.php:394
 msgid "DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee."
+msgstr ""
+
+#: init-content-protector.php:348
+msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
+msgstr ""
+
+#: init-content-protector.php:373
+msgid "Settings"
 msgstr ""

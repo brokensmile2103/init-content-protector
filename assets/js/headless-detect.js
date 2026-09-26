@@ -15,6 +15,19 @@
  * Exposes window.InitContentHeadlessCheck — a Promise resolving to true
  * (suspected automation) or false (looks fine). decrypt.js awaits this
  * before decrypting InitContentEncryptedPayload.
+ *
+ * 1.7:
+ * - WebGL check no longer flags "Mesa": that is the normal open-source GPU
+ *   driver on Linux desktops (e.g. "Mesa Intel(R) UHD Graphics"), not a
+ *   software rasterizer. The WebGL context is released after the check.
+ * - window.chrome / zero-outer-size checks skip in-app browsers (Android
+ *   WebView "; wv)", Facebook, Zalo, Instagram, LINE...), which lack
+ *   window.chrome or report 0x0 outer size by design.
+ * - New signals: "HeadlessChrome" user agent / client-hint brand, and
+ *   Playwright / Selenium IDE leftovers. The "cdc_" ChromeDriver marker is
+ *   now looked for on document as well as window.
+ * - The heavier checks run just after this script instead of while it is
+ *   being parsed; the Promise itself is still created synchronously.
  */
 
 (function () {
@@ -71,17 +84,57 @@
         if (window.callPhantom || window._phantom || window.__nightmare) return true;
         if (window.domAutomation || window.domAutomationController) return true;
 
-        for (const key in window) {
-            if (key.indexOf('cdc_') === 0) return true;
+        // Playwright / Selenium IDE leftovers.
+        if (window.__pwInitScripts || window.__playwright__binding__ || window.__pwManual
+            || window._Selenium_IDE_Recorder || window._selenium || window.calledSelenium) {
+            return true;
+        }
+
+        // ChromeDriver's "cdc_..." marker (older builds prefix it with "$").
+        const cdc = /^\$?cdc_/;
+        try {
+            for (const key in window) {
+                if (cdc.test(key)) return true;
+            }
+            const docKeys = Object.keys(document);
+            for (let i = 0; i < docKeys.length; i++) {
+                if (cdc.test(docKeys[i])) return true;
+            }
+        } catch (e) {
+            // Enumeration can throw on exotic hosts; treat as not found.
         }
 
         return false;
     }
 
+    // In-app browsers (Android WebView, Facebook, Zalo, Instagram, LINE, ...)
+    // legitimately lack window.chrome and may report a 0x0 outer size.
+    const UA = String(navigator.userAgent || '');
+    const IS_IN_APP_WEBVIEW = /; wv\)|FBAN|FBAV|FB_IAB|Zalo|Instagram|Line\/|MicroMessenger|GSA\//i.test(UA);
+
     // Signal 4: outer window dimensions both zero. Easy to patch, so light
     // weight only.
     function checkZeroOuterDimensions() {
+        if (IS_IN_APP_WEBVIEW) return false;
         return window.outerWidth === 0 && window.outerHeight === 0;
+    }
+
+    // Signal 4b (heavier weight): headless Chrome announcing itself. Stock
+    // headless Chrome and default Puppeteer/Playwright launches send
+    // "HeadlessChrome" in the user agent and client-hint brands.
+    function checkHeadlessUserAgent() {
+        if (/HeadlessChrome/.test(UA)) return true;
+        try {
+            const brands = navigator.userAgentData && navigator.userAgentData.brands;
+            if (brands && brands.length) {
+                for (let i = 0; i < brands.length; i++) {
+                    if (/HeadlessChrome/i.test(String(brands[i].brand))) return true;
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+        return false;
     }
 
     // Signal 5 (heavier weight): WebGL renderer reports a software
@@ -97,7 +150,15 @@
             if (!ext) return false;
 
             const renderer = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '');
-            return /swiftshader|llvmpipe|software rasterizer|\bmesa\b/i.test(renderer);
+
+            // Free the context right away: browsers cap live WebGL contexts
+            // and evict the oldest one (possibly the theme's) when exceeded.
+            const lose = gl.getExtension('WEBGL_lose_context');
+            if (lose) lose.loseContext();
+
+            // "Mesa" alone is NOT matched: it is the regular GPU driver on
+            // Linux desktops. llvmpipe/softpipe are Mesa's software paths.
+            return /swiftshader|llvmpipe|softpipe|software rasterizer/i.test(renderer);
         } catch (e) {
             return false;
         }
@@ -148,8 +209,11 @@
     function checkIframeBypass() {
         try {
             const iframe = document.createElement('iframe');
-            iframe.srcdoc = '<!--headless check-->';
+            // No src/srcdoc: an about:blank iframe is same-origin and usable
+            // synchronously, and is not subject to a page's frame-src CSP.
             iframe.style.display = 'none';
+            iframe.setAttribute('aria-hidden', 'true');
+            iframe.tabIndex = -1;
             document.documentElement.appendChild(iframe);
 
             const isHeadless = !!(iframe.contentWindow && iframe.contentWindow.navigator
@@ -196,25 +260,42 @@
     // signal — headless Chrome has shared the same codebase as headed
     // Chrome since v112 — but costs nothing extra to check.
     function checkChromeMissing() {
-        const isChrome = /Chrome/i.test(navigator.userAgent);
+        if (IS_IN_APP_WEBVIEW) return false;
+        const isChrome = /Chrome\//.test(UA) && !/CriOS|EdgiOS|FxiOS/.test(UA);
         return isChrome && !window.chrome;
     }
 
-    if (checkWebdriverFlag()) score += 1;
-    if (checkEmptyPluginsAndLanguages()) score += 1;
-    if (checkAutomationArtifacts()) score += 1;
-    if (checkZeroOuterDimensions()) score += 1;
-    if (checkSoftwareWebGLRenderer()) score += 2;
-    if (checkIframeBypass()) score += 2;
-    if (checkPrototypeTampering()) score += 2;
-    if (checkChromeMissing()) score += 1;
+    // Cheap checks first, heavier ones (WebGL context, iframe) are
+    // deferred by one task so they never block the scripts after this one.
+    function runSyncChecks() {
+        if (checkWebdriverFlag()) score += 1;
+        if (checkEmptyPluginsAndLanguages()) score += 1;
+        if (checkAutomationArtifacts()) score += 1;
+        if (checkZeroOuterDimensions()) score += 1;
+        if (checkHeadlessUserAgent()) score += 2;
+        if (checkPrototypeTampering()) score += 2;
+        if (checkChromeMissing()) score += 1;
+    }
+
+    function runDeferredChecks() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                if (checkSoftwareWebGLRenderer()) score += 2;
+                if (checkIframeBypass()) score += 2;
+                resolve();
+            }, 0);
+        });
+    }
 
     // window.InitContentHeadlessCheck is created synchronously right here,
-    // regardless of whether the async permissions check inside it is still
-    // pending — so it's guaranteed to exist by the time DOMContentLoaded
-    // fires, no matter the relative enqueue order against decrypt.js.
-    window.InitContentHeadlessCheck = checkPermissionsInconsistency().then((permissionsFlagged) => {
-        if (permissionsFlagged) score += 2;
+    // regardless of whether the checks inside it are still pending — so it's
+    // guaranteed to exist by the time DOMContentLoaded fires, no matter the
+    // relative enqueue order against decrypt.js.
+    window.InitContentHeadlessCheck = Promise.all([
+        checkPermissionsInconsistency(),
+        runDeferredChecks(),
+    ]).then((results) => {
+        if (results[0]) score += 2;
 
         const suspected = score >= CONFIG.SCORE_TO_TRIGGER;
         if (suspected && InitHeadlessDetectData.debug) {
@@ -222,6 +303,12 @@
         }
 
         return suspected;
-    });
+    }).catch(() => false);
+
+    try {
+        runSyncChecks();
+    } catch (e) {
+        // A throwing check must never block decryption.
+    }
 
 })();
