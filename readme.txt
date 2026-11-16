@@ -4,7 +4,7 @@ Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.7
+Stable tag: 1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,25 @@ It's aimed at automated scraping tools built on Puppeteer, Playwright, or Seleni
 = Does Encrypt mode still need CryptoJS? =
 Not on HTTPS sites. Since 1.7 decryption uses the browser's built-in Web Crypto API, which is much faster and adds no extra download. The bundled CryptoJS file (about 60 KB) is only loaded on sites not served over HTTPS (where browsers disable Web Crypto), or on demand in the rare browser without Web Crypto support. Developers can force it either way with the `init_plugin_suite_content_protector_load_cryptojs` filter.
 
+= Is there a JavaScript event for when encrypted content has been decrypted? =
+Yes. In Encrypt mode the article first shows a loading skeleton, so scripts that scan the page on load (search term highlighting, table of contents, reading progress, lightboxes) run before the real text exists. After a block has been successfully decrypted and inserted into the page, the plugin fires an `init-content-decrypted` event. It works the same for Inline and Enhanced (REST API) key delivery, and it is never fired when decryption fails or is withheld (for example by Headless Browser Detection).
+
+The event is dispatched on the element that now holds the content and bubbles, so you can listen on `document` or `window`. `event.detail.element` is the element holding the decrypted content and `event.detail.postId` is the post ID. It fires once per protected block, so register your listener early (when your script loads) rather than after the page has finished.
+
+    document.addEventListener( 'init-content-decrypted', function ( event ) {
+        var container = event.detail.element;
+        // Re-run your feature on container here.
+    } );
+
+For example, the Highlight Search Terms plugin can be told to run again on this event with its own `hlst_events` filter:
+
+    add_filter( 'hlst_events', function ( $events ) {
+        $events[] = 'init-content-decrypted';
+        return $events;
+    } );
+
+There is also an earlier `init-content-payload-ready` event (on `window`) that fires when the encrypted payload has been found, before decryption.
+
 = My theme or reader app scrolls the page by itself. Will Anti-Screenshot Protection react? =
 Init AntiSnap 6.0 only reacts to repeated, equally sized scroll steps made by script while the visitor is not touching the page. If your own code does that (an automatic page-turn feature, for example), call `InitAntiSnap.trust(ms)` before scrolling, or `InitAntiSnap.pause()` / `InitAntiSnap.resume()` around it.
 
@@ -86,6 +105,13 @@ Init AntiSnap 6.0 only reacts to repeated, equally sized scroll steps made by sc
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.8 – November 17, 2026 =
+- The `init-content-decrypted` JavaScript event is now documented (see the FAQ) and easier to listen for. It is dispatched on the element that now holds the content and bubbles up, so listeners on that element, on `document` (including `jQuery( document ).on()` and plugins that watch DOM events on the document) and on `window` all receive it. In 1.7 it was only dispatched on `window`, which `document` listeners never saw. Works the same for Inline and Enhanced (REST API) key delivery.
+- The event now carries `event.detail.element` (the element holding the decrypted content) and the new `event.detail.postId`.
+- The event is only fired after decryption succeeded and the content is in the page. If the placeholder was removed from the page before the content arrived, nothing is inserted and no event is fired (1.7 fired it with an empty element).
+- Compatibility: other plugins and scripts that need to run on the article text (search term highlighting, table of contents, reading progress, lightboxes) can now re-run once the real content exists, without a MutationObserver.
+- Removed the `Tested up to` line from the plugin file header (the value is read from this readme).
 
 = 1.7 – September 26, 2026 =
 - Encrypt mode now decrypts with the browser's built-in Web Crypto API by default — about 78x faster than CryptoJS on a long article. CryptoJS is only loaded on sites not served over HTTPS, or on demand when Web Crypto is unavailable or fails. New filter: `init_plugin_suite_content_protector_load_cryptojs`.

@@ -3,13 +3,12 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.7
+ * Version: 1.8
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
  * Domain Path: /languages
  * Requires at least: 5.7
- * Tested up to: 7.1
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -19,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.7' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.8' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG', 'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION', 'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_FILE', __FILE__ );

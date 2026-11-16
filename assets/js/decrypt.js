@@ -17,6 +17,14 @@
  * 2. Legacy (≤ 1.6, e.g. HTML still served from a page cache):
  *    `window.InitContentEncryptedPayload`, rendered into the Content Selector.
  *
+ * Events (both modes, Inline and Enhanced/REST):
+ * - `init-content-payload-ready` (window): encrypted payloads were found.
+ * - `init-content-decrypted`: fired after a block was successfully decrypted
+ *   and inserted into the page. Dispatched on the element that now holds the
+ *   content and bubbles to `document` and `window`.
+ *   `event.detail.element` is that element, `event.detail.postId` the post ID.
+ *   Never fired when decryption fails, is withheld, or nothing was inserted.
+ *
  * Timing: the render still happens no earlier than `delay` ms after
  * DOMContentLoaded (anti-scraper measure, default 1000), but the headless
  * check, key retrieval and decryption now run *during* that wait instead of
@@ -359,9 +367,25 @@
 		return parent;
 	}
 
-	function dispatch( name, detail ) {
+	/**
+	 * Fire a CustomEvent.
+	 *
+	 * With a `target` that is part of the page, the event is dispatched on that
+	 * element and bubbles, so a listener on the element, on `document` (this
+	 * includes jQuery( document ).on() and plugins that watch DOM events on
+	 * the document) or on `window` all receive it. 1.7 only dispatched on
+	 * `window`, which `document` listeners never see. Without a usable target
+	 * the event is dispatched on `window` as before.
+	 *
+	 * @param {string}      name   Event name.
+	 * @param {Object}      detail Event detail.
+	 * @param {Element}     target Optional element the event originates from.
+	 */
+	function dispatch( name, detail, target ) {
 		try {
-			window.dispatchEvent( new CustomEvent( name, { detail: detail } ) );
+			var attached = !! ( target && 1 === target.nodeType && document.documentElement.contains( target ) );
+			var event = new CustomEvent( name, { detail: detail, bubbles: attached } );
+			( attached ? target : window ).dispatchEvent( event );
 		} catch ( e ) {
 			// CustomEvent unsupported: nothing to notify.
 		}
@@ -417,10 +441,23 @@
 				jobs.forEach( function ( job, index ) {
 					Promise.all( [ decrypted[ index ], renderGate ] ).then( function ( results ) {
 						var target = render( job, results[ 0 ] );
+						if ( ! target ) {
+							// The placeholder was removed from the page (e.g. by
+							// a theme script) before the content arrived, so
+							// nothing was inserted and nothing is announced.
+							return Promise.reject( new Error( 'The protected content area is no longer in the page.' ) );
+						}
 						if ( job.wrapper ) {
 							job.wrapper.setAttribute( 'data-icp-state', 'done' );
 						}
-						dispatch( 'init-content-decrypted', { element: target } );
+
+						// Only reached once decryption succeeded and the plaintext
+						// is already in the DOM. Fired once per protected block.
+						dispatch(
+							'init-content-decrypted',
+							{ element: target, postId: job.postId },
+							target
+						);
 					} ).catch( function ( err ) {
 						if ( job.wrapper ) {
 							job.wrapper.setAttribute( 'data-icp-state', 'error' );
