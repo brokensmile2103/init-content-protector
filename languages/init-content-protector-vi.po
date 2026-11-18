@@ -8,7 +8,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "POT-Creation-Date: 2025-06-27\n"
-"PO-Revision-Date: 2026-09-26T12:41:00+00:00\n"
+"PO-Revision-Date: 2026-11-18T12:00:00+00:00\n"
 "Language: vi\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
@@ -235,6 +235,80 @@ msgstr "Chỉ có tác dụng khi Chế độ Bảo vệ Nội dung đang ở M�
 #: includes/settings-page.php:246
 msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
 msgstr "Cách này làm tăng chi phí cho việc cào dữ liệu tự động, nhưng không thể phát hiện mọi thiết lập — công cụ tự động hóa kiểu \"stealth\" được cấu hình kỹ vẫn có thể né được từng tín hiệu riêng lẻ. Hãy xem đây là một lớp ngăn chặn bổ sung, không phải sự đảm bảo tuyệt đối."
+
+#: includes/settings-page.php:254
+msgid "Allow Verified Search Engine Crawlers"
+msgstr "Cho phép Crawler Công cụ Tìm kiếm đã Xác minh"
+
+#: includes/settings-page.php:259
+msgid "Let Googlebot, Bingbot and other verified search engine crawlers through Headless Browser Detection."
+msgstr "Cho Googlebot, Bingbot và các crawler công cụ tìm kiếm đã xác minh khác đi qua Phát hiện Trình duyệt Tự động."
+
+#: includes/settings-page.php:262
+msgid "Googlebot renders pages with a headless browser, so without this option it is treated as automation and only sees the loading skeleton instead of your content. A crawler is let through only after your server confirms it with a reverse and forward DNS lookup (the method Google and Bing document). The User-Agent alone is never trusted, so scrapers that pretend to be Googlebot are still blocked."
+msgstr "Googlebot dựng trang bằng trình duyệt headless, nên nếu không bật tùy chọn này, nó bị coi là công cụ tự động và chỉ thấy khung chờ thay vì nội dung của bạn. Một crawler chỉ được cho qua sau khi máy chủ của bạn xác nhận bằng tra cứu DNS ngược và DNS xuôi (cách Google và Bing hướng dẫn). User-Agent không bao giờ được tin riêng lẻ, nên các scraper giả danh Googlebot vẫn bị chặn."
+
+#: includes/settings-page.php:264
+msgid "Only used when Headless Browser Detection is enabled. Behind a CDN or reverse proxy, check the Visitor IP Detection setting below. The REST API must also stay reachable for crawlers. See the plugin FAQ."
+msgstr "Chỉ dùng khi Phát hiện Trình duyệt Tự động đang bật. Phía sau CDN hoặc reverse proxy, hãy kiểm tra cài đặt Xác định IP khách truy cập bên dưới. REST API cũng phải còn truy cập được với crawler. Xem FAQ của plugin."
+
+#: includes/crawler-verify.php:106
+msgid "Automatic (recommended): Cloudflare and private-network proxies"
+msgstr "Tự động (khuyên dùng): Cloudflare và proxy trong mạng nội bộ"
+
+#: includes/crawler-verify.php:107
+msgid "Direct connection (REMOTE_ADDR)"
+msgstr "Kết nối trực tiếp (REMOTE_ADDR)"
+
+#: includes/crawler-verify.php:108
+msgid "Cloudflare (CF-Connecting-IP)"
+msgstr "Cloudflare (CF-Connecting-IP)"
+
+#: includes/crawler-verify.php:109
+msgid "Proxy header: X-Forwarded-For"
+msgstr "Tiêu đề proxy: X-Forwarded-For"
+
+#: includes/crawler-verify.php:110
+msgid "Proxy header: X-Real-IP"
+msgstr "Tiêu đề proxy: X-Real-IP"
+
+#: includes/crawler-verify.php:111
+msgid "Proxy header: True-Client-IP"
+msgstr "Tiêu đề proxy: True-Client-IP"
+
+#: includes/crawler-verify.php:112
+msgid "Proxy header: Fastly-Client-IP"
+msgstr "Tiêu đề proxy: Fastly-Client-IP"
+
+#: includes/settings-page.php:274
+msgid "Visitor IP Detection"
+msgstr "Xác định IP khách truy cập"
+
+#: includes/settings-page.php:282
+msgid "How the plugin finds the real IP address of a visitor, used to verify search engine crawlers. Automatic reads CF-Connecting-IP only when the connection really comes from Cloudflare's published IP ranges, and X-Forwarded-For / X-Real-IP only when it comes from a proxy or load balancer on a private network, so a visitor cannot forge it. Choose a specific option if your CDN or proxy is not covered."
+msgstr "Cách plugin xác định địa chỉ IP thật của khách truy cập, dùng để xác minh crawler của công cụ tìm kiếm. Chế độ Tự động chỉ đọc CF-Connecting-IP khi kết nối thật sự đến từ các dải IP Cloudflare đã công bố, và chỉ đọc X-Forwarded-For / X-Real-IP khi kết nối đến từ proxy hoặc load balancer trong mạng nội bộ, nên khách truy cập không thể giả mạo. Hãy chọn một tùy chọn cụ thể nếu CDN hoặc proxy của bạn không nằm trong số đó."
+
+#: includes/settings-page.php:284
+msgid "The proxy header options trust that header completely: only use one when your server accepts traffic from that proxy alone."
+msgstr "Các tùy chọn tiêu đề proxy tin tưởng hoàn toàn vào tiêu đề đó: chỉ dùng khi máy chủ của bạn chỉ nhận lưu lượng từ proxy đó."
+
+#: includes/settings-page.php:290
+#, php-format
+msgid "IP address the plugin sees for you: %s"
+msgstr "Địa chỉ IP plugin đang thấy của bạn: %s"
+
+#: includes/settings-page.php:291
+msgid "unknown"
+msgstr "không xác định"
+
+#: includes/settings-page.php:299
+#, php-format
+msgid "Direct connection to your server (REMOTE_ADDR): %s"
+msgstr "Kết nối trực tiếp tới máy chủ của bạn (REMOTE_ADDR): %s"
+
+#: includes/settings-page.php:305
+msgid "The first address should be your own public IP. If it is a Cloudflare or proxy address instead, pick the matching option above."
+msgstr "Địa chỉ đầu tiên phải là IP công khai của chính bạn. Nếu thay vào đó là địa chỉ của Cloudflare hoặc proxy, hãy chọn tùy chọn phù hợp ở trên."
 
 #: includes/settings-page.php:394
 msgid "DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee."

@@ -3,7 +3,7 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.8
+ * Version: 1.9
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.8' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.9' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG', 'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION', 'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_FILE', __FILE__ );
@@ -33,6 +33,7 @@ define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_KEYWORD_SALT', 'init_salt_' );
 
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'utils.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'settings-page.php';
+require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'crawler-verify.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'rest-api.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'hooks.php';
 
@@ -133,7 +134,14 @@ function init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, 
 			'init-content-protector-headless-detect',
 			'InitHeadlessDetectData',
 			array(
-				'debug' => current_user_can( 'manage_options' ),
+				'debug'      => current_user_can( 'manage_options' ),
+				// Only a session that already looks automated calls this
+				// route. It asks the server (never cached, so it also works
+				// behind a full-page cache) whether the request comes from a
+				// search engine crawler verified by reverse DNS.
+				'crawlerUrl' => init_plugin_suite_content_protector_is_enabled( $settings, 'headless_allow_crawlers' )
+					? esc_url_raw( rest_url( 'init-content-protector/v1/crawler' ) )
+					: '',
 			)
 		);
 

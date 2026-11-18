@@ -118,19 +118,22 @@ function init_plugin_suite_content_protector_sanitize_settings( $input ) {
 		return ! empty( $input[ $key ] ) ? '1' : '0';
 	};
 
-	$output['post_types']       = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['post_types'] ?? array() ) ) ) );
-	$output['content_mode']     = in_array( $input['content_mode'] ?? 'none', array( 'none', 'encrypt' ), true ) ? $input['content_mode'] : 'none';
-	$output['encrypt_key']      = isset( $input['encrypt_key'] ) ? sanitize_text_field( wp_unslash( $input['encrypt_key'] ) ) : '';
-	$output['encrypt_delivery'] = in_array( $input['encrypt_delivery'] ?? 'inline', array( 'inline', 'rest' ), true ) ? $input['encrypt_delivery'] : 'inline';
-	$output['headless_detect']  = $checkbox( 'headless_detect' );
-	$output['content_selector'] = isset( $input['content_selector'] ) ? sanitize_text_field( wp_unslash( $input['content_selector'] ) ) : '';
-	$output['js_protect']       = $checkbox( 'js_protect' );
-	$output['disable_devtool']  = $checkbox( 'disable_devtool' );
-	$output['antisnap']         = $checkbox( 'antisnap' );
-	$output['inject_noise']     = $checkbox( 'inject_noise' );
-	$output['noise_rate']       = isset( $input['noise_rate'] ) ? max( 1, min( 50, (int) $input['noise_rate'] ) ) : $defaults['noise_rate'];
-	$output['keywords']         = isset( $input['keywords'] ) ? sanitize_text_field( wp_unslash( $input['keywords'] ) ) : '';
-	$output['excluded_roles']   = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['excluded_roles'] ?? array() ) ) ) );
+	$output['post_types']              = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['post_types'] ?? array() ) ) ) );
+	$output['content_mode']            = in_array( $input['content_mode'] ?? 'none', array( 'none', 'encrypt' ), true ) ? ( $input['content_mode'] ?? 'none' ) : 'none';
+	$output['encrypt_key']             = isset( $input['encrypt_key'] ) ? sanitize_text_field( wp_unslash( $input['encrypt_key'] ) ) : '';
+	$output['encrypt_delivery']        = in_array( $input['encrypt_delivery'] ?? 'inline', array( 'inline', 'rest' ), true ) ? ( $input['encrypt_delivery'] ?? 'inline' ) : 'inline';
+	$output['headless_detect']         = $checkbox( 'headless_detect' );
+	$output['headless_allow_crawlers'] = $checkbox( 'headless_allow_crawlers' );
+	$ip_source                         = isset( $input['client_ip_source'] ) && is_string( $input['client_ip_source'] ) ? $input['client_ip_source'] : '';
+	$output['client_ip_source']        = isset( init_plugin_suite_content_protector_client_ip_sources()[ $ip_source ] ) ? $ip_source : $defaults['client_ip_source'];
+	$output['content_selector']        = isset( $input['content_selector'] ) ? sanitize_text_field( wp_unslash( $input['content_selector'] ) ) : '';
+	$output['js_protect']              = $checkbox( 'js_protect' );
+	$output['disable_devtool']         = $checkbox( 'disable_devtool' );
+	$output['antisnap']                = $checkbox( 'antisnap' );
+	$output['inject_noise']            = $checkbox( 'inject_noise' );
+	$output['noise_rate']              = isset( $input['noise_rate'] ) ? max( 1, min( 50, (int) $input['noise_rate'] ) ) : $defaults['noise_rate'];
+	$output['keywords']                = isset( $input['keywords'] ) ? sanitize_text_field( wp_unslash( $input['keywords'] ) ) : '';
+	$output['excluded_roles']          = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['excluded_roles'] ?? array() ) ) ) );
 
 	if ( '' === $output['content_selector'] ) {
 		$output['content_selector'] = $defaults['content_selector'];
@@ -157,6 +160,8 @@ function init_plugin_suite_content_protector_render_settings_page() {
 
 	$post_types = get_post_types( array( 'public' => true ), 'objects' );
 	unset( $post_types['attachment'] );
+
+	$detected_ip = init_plugin_suite_content_protector_client_ip();
 
 	$roles = function_exists( 'get_editable_roles' ) ? get_editable_roles() : wp_roles()->roles;
 	?>
@@ -244,6 +249,60 @@ function init_plugin_suite_content_protector_render_settings_page() {
 							<?php esc_html_e( 'Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in "No Protection" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own.', 'init-content-protector' ); ?>
 							<br>
 							<?php esc_html_e( 'This raises the cost of automated scraping but cannot detect every setup — well-configured "stealth" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee.', 'init-content-protector' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row">
+						<label for="headless_allow_crawlers"><?php esc_html_e( 'Allow Verified Search Engine Crawlers', 'init-content-protector' ); ?></label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[headless_allow_crawlers]" id="headless_allow_crawlers" value="1" <?php checked( $option['headless_allow_crawlers'], '1' ); ?>>
+							<?php esc_html_e( 'Let Googlebot, Bingbot and other verified search engine crawlers through Headless Browser Detection.', 'init-content-protector' ); ?>
+						</label>
+						<p class="description">
+							<?php esc_html_e( 'Googlebot renders pages with a headless browser, so without this option it is treated as automation and only sees the loading skeleton instead of your content. A crawler is let through only after your server confirms it with a reverse and forward DNS lookup (the method Google and Bing document). The User-Agent alone is never trusted, so scrapers that pretend to be Googlebot are still blocked.', 'init-content-protector' ); ?>
+							<br>
+							<?php esc_html_e( 'Only used when Headless Browser Detection is enabled. Behind a CDN or reverse proxy, check the Visitor IP Detection setting below. The REST API must also stay reachable for crawlers. See the plugin FAQ.', 'init-content-protector' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row"><label for="client_ip_source"><?php esc_html_e( 'Visitor IP Detection', 'init-content-protector' ); ?></label></th>
+					<td>
+						<select name="<?php echo esc_attr( $name ); ?>[client_ip_source]" id="client_ip_source">
+							<?php foreach ( init_plugin_suite_content_protector_client_ip_sources() as $source_value => $source_label ) : ?>
+								<option value="<?php echo esc_attr( $source_value ); ?>" <?php selected( $option['client_ip_source'], $source_value ); ?>><?php echo esc_html( $source_label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'How the plugin finds the real IP address of a visitor, used to verify search engine crawlers. Automatic reads CF-Connecting-IP only when the connection really comes from Cloudflare\'s published IP ranges, and X-Forwarded-For / X-Real-IP only when it comes from a proxy or load balancer on a private network, so a visitor cannot forge it. Choose a specific option if your CDN or proxy is not covered.', 'init-content-protector' ); ?>
+							<br>
+							<?php esc_html_e( 'The proxy header options trust that header completely: only use one when your server accepts traffic from that proxy alone.', 'init-content-protector' ); ?>
+						</p>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: IP address wrapped in <code> */
+								esc_html__( 'IP address the plugin sees for you: %s', 'init-content-protector' ),
+								'<code>' . esc_html( '' !== $detected_ip ? $detected_ip : __( 'unknown', 'init-content-protector' ) ) . '</code>'
+							);
+							?>
+							<?php if ( isset( $_SERVER['REMOTE_ADDR'] ) ) : ?>
+								<br>
+								<?php
+								printf(
+									/* translators: %s: IP address wrapped in <code> */
+									esc_html__( 'Direct connection to your server (REMOTE_ADDR): %s', 'init-content-protector' ),
+									'<code>' . esc_html( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) ) . '</code>'
+								);
+								?>
+							<?php endif; ?>
+							<br>
+							<?php esc_html_e( 'The first address should be your own public IP. If it is a Cloudflare or proxy address instead, pick the matching option above.', 'init-content-protector' ); ?>
 						</p>
 					</td>
 				</tr>

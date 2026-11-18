@@ -21,19 +21,21 @@ defined( 'ABSPATH' ) || exit;
  */
 function init_plugin_suite_content_protector_default_settings() {
 	return array(
-		'post_types'       => array(),
-		'content_mode'     => 'none',
-		'encrypt_key'      => '',
-		'encrypt_delivery' => 'inline',
-		'headless_detect'  => '0',
-		'content_selector' => '.entry-content',
-		'js_protect'       => '0',
-		'disable_devtool'  => '0',
-		'antisnap'         => '0',
-		'inject_noise'     => '0',
-		'noise_rate'       => 7,
-		'keywords'         => '',
-		'excluded_roles'   => array(),
+		'post_types'              => array(),
+		'content_mode'            => 'none',
+		'encrypt_key'             => '',
+		'encrypt_delivery'        => 'inline',
+		'headless_detect'         => '0',
+		'headless_allow_crawlers' => '1',
+		'client_ip_source'        => 'auto',
+		'content_selector'        => '.entry-content',
+		'js_protect'              => '0',
+		'disable_devtool'         => '0',
+		'antisnap'                => '0',
+		'inject_noise'            => '0',
+		'noise_rate'              => 7,
+		'keywords'                => '',
+		'excluded_roles'          => array(),
 	);
 }
 

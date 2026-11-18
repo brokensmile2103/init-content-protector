@@ -4,7 +4,7 @@ Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.8
+Stable tag: 1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ GitHub repository: [https://github.com/brokensmile2103/init-content-protector](h
   - Inline delivery (default, simple) or Enhanced delivery (fetches the key via a REST API endpoint after page load — keeps it out of cached/static HTML, cache-plugin friendly)
   - Encryption is done fresh on every request (about a third of a millisecond), so members-only or per-user content can never be served to the wrong visitor from a cache
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
-  - Optional Headless Browser Detection: withholds decryption from sessions that look like Puppeteer/Playwright/Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor
+  - Optional Headless Browser Detection: withholds decryption from sessions that look like Puppeteer/Playwright/Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor; verified search engine crawlers (Googlebot, Bingbot...) are let through by reverse DNS check
 - Keyword cloaking using CSS pseudo-elements (whole words only, Unicode aware, never inside HTML attributes or code blocks)
 - Invisible noise injection to confuse crawlers — only ever injected into plain text, never inside HTML tags or inside `<script>`, `<style>`, `<pre>`, `<select>`, `<svg>`, and similar elements; injection rate is configurable (1–50%)
 - Automatic AMP detection — protection is skipped on AMP endpoints instead of producing invalid markup
@@ -46,7 +46,7 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 == Frequently Asked Questions ==
 
 = Will this affect SEO? =
-If you enable full content encryption, search engines will not be able to see the content. Only use this option if SEO visibility is not required.
+If you enable full content encryption, search engines that do not run JavaScript will not be able to see the content, and even those that do (such as Google) may not index it reliably. Only use this option if SEO visibility is not required, and test your pages (for example with the URL Inspection tool in Google Search Console) before deploying.
 
 = Does this plugin support custom post types? =
 Yes. You can choose which post types are protected in the settings page.
@@ -78,6 +78,18 @@ It's aimed at automated scraping tools built on Puppeteer, Playwright, or Seleni
 = Does Encrypt mode still need CryptoJS? =
 Not on HTTPS sites. Since 1.7 decryption uses the browser's built-in Web Crypto API, which is much faster and adds no extra download. The bundled CryptoJS file (about 60 KB) is only loaded on sites not served over HTTPS (where browsers disable Web Crypto), or on demand in the rare browser without Web Crypto support. Developers can force it either way with the `init_plugin_suite_content_protector_load_cryptojs` filter.
 
+= Does Headless Browser Detection block Googlebot? =
+It did before 1.9: Googlebot renders pages with a headless Chromium, so it can score as automation and was then only shown the loading skeleton. Since 1.9 the option **Allow Verified Search Engine Crawlers** (on by default) lets real search engine crawlers through. A session that looks like automation first asks your server whether the request comes from a verified crawler. The server only answers yes after a reverse DNS lookup of the request IP lands on the operator's domain (for example `googlebot.com` or `search.msn.com`) and a forward lookup of that name returns the same IP, the method Google and Bing document. The User-Agent alone is never trusted, so scrapers pretending to be Googlebot are still blocked. Supported: Google, Bing, Apple, Yandex and Baidu.
+
+Things to check if a crawler is still blocked:
+
+* The plugin must see the real visitor IP, not the address of your CDN or proxy. Under **Visitor IP Detection** the default, Automatic, reads `CF-Connecting-IP` only when the connection really comes from Cloudflare's published IP ranges, and `X-Forwarded-For` / `X-Real-IP` only when it comes from a proxy or load balancer on a private network, so a visitor cannot forge it. The line **IP address the plugin sees for you** shows what is detected and should be your own public IP. If it shows a CDN or proxy address instead, pick the matching option (Cloudflare, or a proxy header such as `X-Forwarded-For`). The proxy header options trust that header completely: only use one when your server accepts traffic from that proxy alone.
+
+* The REST route `/wp-json/init-content-protector/v1/crawler` must be reachable for crawlers: not blocked in robots.txt, and not restricted to logged-in users by a security plugin. If the check cannot be completed, decryption stays withheld.
+* Verification needs DNS lookups on your server. They only run when the User-Agent claims to be a known crawler, and a verified IP is remembered for a day.
+
+Developers can adjust it with the `init_plugin_suite_content_protector_verified_crawlers` (crawlers and their reverse DNS domains), `init_plugin_suite_content_protector_pre_crawler_dns_check` (for example to compare against published IP ranges) and `init_plugin_suite_content_protector_is_verified_crawler` filters. Verification only matters when Headless Browser Detection is enabled in Encrypt mode.
+
 = Is there a JavaScript event for when encrypted content has been decrypted? =
 Yes. In Encrypt mode the article first shows a loading skeleton, so scripts that scan the page on load (search term highlighting, table of contents, reading progress, lightboxes) run before the real text exists. After a block has been successfully decrypted and inserted into the page, the plugin fires an `init-content-decrypted` event. It works the same for Inline and Enhanced (REST API) key delivery, and it is never fired when decryption fails or is withheld (for example by Headless Browser Detection).
 
@@ -105,6 +117,17 @@ Init AntiSnap 6.0 only reacts to repeated, equally sized scroll steps made by sc
 1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
 
 == Changelog ==
+
+= 1.9 – November 18, 2026 =
+- Fixed: Headless Browser Detection blocked Googlebot. Googlebot renders pages with a headless Chromium, so it scored as automation, never got the decrypted content and only saw the loading skeleton (visible in Google Search Console and the Rich Results Test). New option **Allow Verified Search Engine Crawlers** (on by default, also for existing sites) lets real crawlers through.
+- Crawlers are verified with a forward-confirmed reverse DNS lookup, the method Google and Bing document, never by User-Agent alone, so scrapers pretending to be Googlebot are still blocked. Supported: Google, Bing, Apple, Yandex, Baidu. `googleusercontent.com` (rentable Google Cloud addresses) is deliberately not accepted.
+- Only a session that already scores as automation asks the server, through the new REST route `/wp-json/init-content-protector/v1/crawler`. The answer is never cached, so it works behind full-page caches and CDNs. Any failure (REST blocked, timeout, invalid answer) keeps decryption withheld.
+- DNS lookups only run when the User-Agent claims to be a known crawler. A verified IP is remembered for a day; failed checks are kept in the object cache only, so fake crawlers from many IPs cannot bloat the options table.
+- New setting **Visitor IP Detection** for sites behind Cloudflare or another proxy, where the server would otherwise only see the proxy's address. Automatic (default) reads `CF-Connecting-IP` only when the connection comes from Cloudflare's published IP ranges, and `X-Forwarded-For` / `X-Real-IP` only when it comes from a proxy on a private network, so a visitor cannot forge them. You can also pick Direct connection, Cloudflare, or a proxy header (`X-Forwarded-For`, `X-Real-IP`, `True-Client-IP`, `Fastly-Client-IP`). The settings page shows the IP address the plugin currently sees for you.
+- New filters: `init_plugin_suite_content_protector_verified_crawlers`, `init_plugin_suite_content_protector_client_ip`, `init_plugin_suite_content_protector_cloudflare_ranges`, `init_plugin_suite_content_protector_pre_crawler_dns_check`, `init_plugin_suite_content_protector_is_verified_crawler`.
+- Fixed: saving the settings without a Content Protection Mode or Key Delivery value raised PHP "undefined array key" notices.
+- The FAQ about SEO now says that crawlers which run JavaScript may still not index encrypted content reliably, and to test with Search Console.
+- Uninstall also removes the verified crawler transients.
 
 = 1.8 – November 17, 2026 =
 - The `init-content-decrypted` JavaScript event is now documented (see the FAQ) and easier to listen for. It is dispatched on the element that now holds the content and bubbles up, so listeners on that element, on `document` (including `jQuery( document ).on()` and plugins that watch DOM events on the document) and on `window` all receive it. In 1.7 it was only dispatched on `window`, which `document` listeners never saw. Works the same for Inline and Enhanced (REST API) key delivery.

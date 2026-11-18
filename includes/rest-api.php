@@ -44,6 +44,52 @@ function init_plugin_suite_content_protector_register_rest_routes() {
 add_action( 'rest_api_init', 'init_plugin_suite_content_protector_register_rest_routes' );
 
 /**
+ * Register the crawler verification route (1.9).
+ *
+ * @return void
+ */
+function init_plugin_suite_content_protector_register_crawler_route() {
+	register_rest_route(
+		'init-content-protector/v1',
+		'/crawler',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'init_plugin_suite_content_protector_rest_verify_crawler',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+add_action( 'rest_api_init', 'init_plugin_suite_content_protector_register_crawler_route' );
+
+/**
+ * Tell headless-detect.js whether the requester is a verified search engine
+ * crawler (reverse DNS confirmed by forward DNS).
+ *
+ * Only answers about the caller's own IP address and User-Agent, so it reveals
+ * nothing secret and needs no nonce. The answer depends on who asks, so it is
+ * sent with no-store headers and works behind full-page caches and CDNs.
+ *
+ * @return WP_REST_Response
+ */
+function init_plugin_suite_content_protector_rest_verify_crawler() {
+	$settings = init_plugin_suite_content_protector_get_settings();
+	$verified = false;
+
+	if ( init_plugin_suite_content_protector_is_encrypt_mode( $settings )
+		&& init_plugin_suite_content_protector_is_enabled( $settings, 'headless_detect' )
+		&& init_plugin_suite_content_protector_is_enabled( $settings, 'headless_allow_crawlers' )
+	) {
+		$verified = '' !== init_plugin_suite_content_protector_verified_crawler();
+	}
+
+	$response = rest_ensure_response( array( 'verified' => $verified ) );
+	$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
+	$response->header( 'Vary', 'User-Agent' );
+
+	return $response;
+}
+
+/**
  * Whether the request is a legitimate same-site request from a page.
  *
  * A valid nonce is accepted as before. Because nonces expire after 12–24

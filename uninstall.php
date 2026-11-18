@@ -19,14 +19,17 @@ function init_plugin_suite_content_protector_uninstall_site() {
 
 	delete_option( 'init_plugin_suite_content_protector_settings' );
 
-	// Encrypted-content transients written by versions 1.4–1.6 ("icp_enc_*").
+	// Transients written by this plugin: encrypted content ("icp_enc_*",
+	// versions 1.4–1.6) and verified crawler IPs ("icp_bot_*", 1.9+).
 	// There is no API to delete transients by prefix, hence the direct query.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off cleanup on uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
 			$wpdb->esc_like( '_transient_icp_enc_' ) . '%',
-			$wpdb->esc_like( '_transient_timeout_icp_enc_' ) . '%'
+			$wpdb->esc_like( '_transient_timeout_icp_enc_' ) . '%',
+			$wpdb->esc_like( '_transient_icp_bot_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_icp_bot_' ) . '%'
 		)
 	);
 }

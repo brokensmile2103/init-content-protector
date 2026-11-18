@@ -16,6 +16,13 @@
  * (suspected automation) or false (looks fine). decrypt.js awaits this
  * before decrypting InitContentEncryptedPayload.
  *
+ * 1.9:
+ * - Search engine crawlers (Googlebot renders with headless Chromium) are no
+ *   longer withheld. A session that scores as automation first asks the
+ *   server, through the REST route in InitHeadlessDetectData.crawlerUrl,
+ *   whether the request comes from a crawler verified by reverse + forward
+ *   DNS. Any failure keeps the session suspected (decryption stays withheld).
+ *
  * 1.7:
  * - WebGL check no longer flags "Mesa": that is the normal open-source GPU
  *   driver on Linux desktops (e.g. "Mesa Intel(R) UHD Graphics"), not a
@@ -287,6 +294,47 @@
         });
     }
 
+    // 1.9: Googlebot renders pages with headless Chromium, so it can score as
+    // "automation" for real. Only for a session that already looks suspicious,
+    // ask the server whether the request comes from a search engine crawler
+    // verified by reverse DNS + forward DNS (never by User-Agent alone, which
+    // anyone can fake). The server decides from the IP and User-Agent of this
+    // very request and answers with no-store headers, so this also works behind
+    // a full-page cache. Anything that goes wrong (REST blocked, timeout,
+    // network error, bad JSON) counts as "not verified": the session stays
+    // suspected and decryption stays withheld.
+    const CRAWLER_CHECK_TIMEOUT_MS = 5000;
+
+    function confirmVerifiedCrawler() {
+        const url = InitHeadlessDetectData.crawlerUrl;
+        if (!url || typeof fetch !== 'function') return Promise.resolve(false);
+
+        return new Promise((resolve) => {
+            let timer = null;
+            const controller = typeof AbortController === 'function' ? new AbortController() : null;
+            const finish = (verified) => {
+                if (timer !== null) clearTimeout(timer);
+                resolve(verified === true);
+            };
+
+            timer = setTimeout(() => {
+                if (controller) controller.abort();
+                finish(false);
+            }, CRAWLER_CHECK_TIMEOUT_MS);
+
+            fetch(url, {
+                method: 'GET',
+                credentials: 'omit',
+                cache: 'no-store',
+                headers: { Accept: 'application/json' },
+                signal: controller ? controller.signal : undefined,
+            })
+                .then((response) => (response.ok ? response.json() : null))
+                .then((json) => finish(!!json && json.verified === true))
+                .catch(() => finish(false));
+        });
+    }
+
     // window.InitContentHeadlessCheck is created synchronously right here,
     // regardless of whether the checks inside it are still pending — so it's
     // guaranteed to exist by the time DOMContentLoaded fires, no matter the
@@ -298,11 +346,21 @@
         if (results[0]) score += 2;
 
         const suspected = score >= CONFIG.SCORE_TO_TRIGGER;
-        if (suspected && InitHeadlessDetectData.debug) {
-            console.warn('[Init Content Protector] Headless/automation browser suspected (score ' + score + '/' + CONFIG.SCORE_TO_TRIGGER + ') — decryption will be withheld.');
-        }
+        if (!suspected) return false;
 
-        return suspected;
+        return confirmVerifiedCrawler().then((verifiedCrawler) => {
+            if (verifiedCrawler) {
+                if (InitHeadlessDetectData.debug) {
+                    console.info('[Init Content Protector] Looks like automation (score ' + score + '/' + CONFIG.SCORE_TO_TRIGGER + ') but the server verified a search engine crawler — decryption allowed.');
+                }
+                return false;
+            }
+
+            if (InitHeadlessDetectData.debug) {
+                console.warn('[Init Content Protector] Headless/automation browser suspected (score ' + score + '/' + CONFIG.SCORE_TO_TRIGGER + ') — decryption will be withheld.');
+            }
+            return true;
+        });
     }).catch(() => false);
 
     try {

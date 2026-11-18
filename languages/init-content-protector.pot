@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Content Protector 1.8\n"
+"Project-Id-Version: Init Content Protector 1.9\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-content-protector\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-26T12:41:00+00:00\n"
+"POT-Creation-Date: 2026-11-18T12:00:00+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: init-content-protector\n"
@@ -148,6 +148,80 @@ msgstr ""
 
 #: includes/settings-page.php:246
 msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
+msgstr ""
+
+#: includes/settings-page.php:254
+msgid "Allow Verified Search Engine Crawlers"
+msgstr ""
+
+#: includes/settings-page.php:259
+msgid "Let Googlebot, Bingbot and other verified search engine crawlers through Headless Browser Detection."
+msgstr ""
+
+#: includes/settings-page.php:262
+msgid "Googlebot renders pages with a headless browser, so without this option it is treated as automation and only sees the loading skeleton instead of your content. A crawler is let through only after your server confirms it with a reverse and forward DNS lookup (the method Google and Bing document). The User-Agent alone is never trusted, so scrapers that pretend to be Googlebot are still blocked."
+msgstr ""
+
+#: includes/settings-page.php:264
+msgid "Only used when Headless Browser Detection is enabled. Behind a CDN or reverse proxy, check the Visitor IP Detection setting below. The REST API must also stay reachable for crawlers. See the plugin FAQ."
+msgstr ""
+
+#: includes/crawler-verify.php:106
+msgid "Automatic (recommended): Cloudflare and private-network proxies"
+msgstr ""
+
+#: includes/crawler-verify.php:107
+msgid "Direct connection (REMOTE_ADDR)"
+msgstr ""
+
+#: includes/crawler-verify.php:108
+msgid "Cloudflare (CF-Connecting-IP)"
+msgstr ""
+
+#: includes/crawler-verify.php:109
+msgid "Proxy header: X-Forwarded-For"
+msgstr ""
+
+#: includes/crawler-verify.php:110
+msgid "Proxy header: X-Real-IP"
+msgstr ""
+
+#: includes/crawler-verify.php:111
+msgid "Proxy header: True-Client-IP"
+msgstr ""
+
+#: includes/crawler-verify.php:112
+msgid "Proxy header: Fastly-Client-IP"
+msgstr ""
+
+#: includes/settings-page.php:274
+msgid "Visitor IP Detection"
+msgstr ""
+
+#: includes/settings-page.php:282
+msgid "How the plugin finds the real IP address of a visitor, used to verify search engine crawlers. Automatic reads CF-Connecting-IP only when the connection really comes from Cloudflare's published IP ranges, and X-Forwarded-For / X-Real-IP only when it comes from a proxy or load balancer on a private network, so a visitor cannot forge it. Choose a specific option if your CDN or proxy is not covered."
+msgstr ""
+
+#: includes/settings-page.php:284
+msgid "The proxy header options trust that header completely: only use one when your server accepts traffic from that proxy alone."
+msgstr ""
+
+#: includes/settings-page.php:290
+#, php-format
+msgid "IP address the plugin sees for you: %s"
+msgstr ""
+
+#: includes/settings-page.php:291
+msgid "unknown"
+msgstr ""
+
+#: includes/settings-page.php:299
+#, php-format
+msgid "Direct connection to your server (REMOTE_ADDR): %s"
+msgstr ""
+
+#: includes/settings-page.php:305
+msgid "The first address should be your own public IP. If it is a Cloudflare or proxy address instead, pick the matching option above."
 msgstr ""
 
 #: includes/settings-page.php:252
