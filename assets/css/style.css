@@ -1,10 +1,38 @@
+/*
+ * Init Content Protector: loading skeleton and noscript notice shown in
+ * place of encrypted content until it is decrypted.
+ *
+ * 1.10: every color is a CSS custom property, so a theme can restyle the
+ * skeleton (for example for a dark mode) without fighting the selectors
+ * below. Set the properties on the wrapper:
+ *
+ *   html.dark .icp-protected {
+ *       --icp-skeleton-bg: #2b2f36;
+ *       --icp-skeleton-shine: rgba(255, 255, 255, 0.06);
+ *   }
+ *
+ * Properties: --icp-skeleton-bg, --icp-skeleton-shine, --icp-skeleton-radius,
+ * --icp-skeleton-height, --icp-skeleton-gap, --icp-noscript-bg,
+ * --icp-noscript-border, --icp-noscript-color.
+ *
+ * The built-in color schemes (Settings → "Loading Skeleton Color Scheme", or
+ * the init_plugin_suite_content_protector_skeleton_scheme filter) add the
+ * class icp-scheme-dark or icp-scheme-auto to the wrapper. Their rules use
+ * :where() so they carry no specificity: any theme rule that targets
+ * .icp-protected wins over them.
+ */
+
 .imc-skeleton-line {
     height: 1.5em;
+    height: var(--icp-skeleton-height, 1.5em);
     margin-bottom: 20px;
+    margin-bottom: var(--icp-skeleton-gap, 20px);
     border-radius: 5px;
+    border-radius: var(--icp-skeleton-radius, 5px);
     position: relative;
     overflow: hidden;
     background-color: #e1e4e8;
+    background-color: var(--icp-skeleton-bg, #e1e4e8);
 }
 
 .imc-skeleton-line.short {
@@ -18,22 +46,9 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        to right,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(to right, transparent, var(--icp-skeleton-shine, rgba(255, 255, 255, 0.3)), transparent);
     animation: imc-skeleton-shimmer 1.5s infinite;
-}
-
-.uk-light .imc-skeleton-line::after {
-    background: linear-gradient(
-        to right,
-        transparent,
-        rgba(255, 255, 255, 0.09),
-        transparent
-    );
 }
 
 @keyframes imc-skeleton-shimmer {
@@ -61,109 +76,34 @@
     margin: 0 0 20px;
     padding: 12px 16px;
     border-left: 4px solid #d63638;
+    border-left: 4px solid var(--icp-noscript-border, #d63638);
     background-color: #fcf0f1;
+    background-color: var(--icp-noscript-bg, #fcf0f1);
     color: #50575e;
+    color: var(--icp-noscript-color, #50575e);
 }
 
-.frag-shade-01,
-.ghost-x7,
-.scramble-v3,
-.nullcore-beta,
-.blurwave-92,
-.hidezone-k1,
-.phantom-lag,
-.junklayer-zx,
-.stealth-tick,
-.flick-fade-r7,
-.vapor-delta,
-.cloak-mute-9,
-.packet-fog,
-.mute-husk-88,
-.shadow-glitch,
-.dust-null,
-.junk-mark32,
-.camoframe-z1,
-.crackline-vx,
-.bit-spike,
-.noisepatch-t2,
-.anti-read-burst,
-.cloakdrop-v7,
-.faint-node,
-.echo-trick,
-.shield-pulse-0x,
-.blind-phase,
-.loopbug-alpha,
-.ghostline-17,
-.mist-frag,
-.invis-junk,
-.flick-hint,
-.dummy-ghost,
-.silent-dust,
-.hovermask-01,
-.blurpoint-mix,
-.phaseblock-zk,
-.hollow-trail,
-.node-husk,
-.noise-crawl,
-.masker-core,
-.patchwave-93,
-.hacknull-tt,
-.mimic-mute-5x,
-.hush-blip,
-.filter-junked,
-.glitchcore,
-.softfade-v9,
-.decoy-null,
-.streamblock-q4,
-.noshadow-55,
-.divert-trap,
-.slice-invert,
-.scatter-vibe,
-.whitefade,
-.trapdust-fake,
-.shadowbyte,
-.offset-glow,
-.noise-token,
-.pixel-disrupt,
-.crackloop,
-.blocktrap-ghost,
-.coreblur-beta,
-.pulsar-drop,
-.blindfade-mx,
-.shimmer-null,
-.lag-bug-21,
-.trapzone-random,
-.lineghost-v1,
-.blurstream-fake,
-.inert-code-99,
-.distort-mimic,
-.cloakping,
-.jammer-lost,
-.nodedust-18,
-.fakeline-delta,
-.buffblock-k2,
-.trickpulse,
-.fogmark-v0,
-.scramble-loop,
-.coverray-ghost,
-.noise-phi-7,
-.fragshade-l1,
-.zapdust,
-.anti-scan-33,
-.bypass-hollow,
-.tracer-dust,
-.shade-void,
-.invisible-xn,
-.null-slice,
-.offpoint-zz,
-.glitch-tag,
-.blurtrace-71,
-.stealth-zap,
-.dropfilter-f,
-.dummy-dash-3,
-.smokephase,
-.mute-jammer,
-.jam-dustbox,
-.fakeslice-z {
-    display: none !important;
+/* Dark scheme. Translucent white works on any dark background. */
+:where(.icp-scheme-dark) {
+    --icp-skeleton-bg: rgba(255, 255, 255, 0.1);
+    --icp-skeleton-shine: rgba(255, 255, 255, 0.08);
+    --icp-noscript-bg: rgba(214, 54, 56, 0.15);
+    --icp-noscript-border: #f86368;
+    --icp-noscript-color: inherit;
+}
+
+/* Auto scheme: follows the visitor's system setting. */
+@media (prefers-color-scheme: dark) {
+    :where(.icp-scheme-auto) {
+        --icp-skeleton-bg: rgba(255, 255, 255, 0.1);
+        --icp-skeleton-shine: rgba(255, 255, 255, 0.08);
+        --icp-noscript-bg: rgba(214, 54, 56, 0.15);
+        --icp-noscript-border: #f86368;
+        --icp-noscript-color: inherit;
+    }
+}
+
+/* UIkit light-on-dark sections (kept from earlier versions). */
+:where(.uk-light) .icp-protected {
+    --icp-skeleton-shine: rgba(255, 255, 255, 0.09);
 }

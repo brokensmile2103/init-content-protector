@@ -31,6 +31,10 @@ function init_plugin_suite_content_protector_filter_post_content( $content ) {
 		return $content;
 	}
 
+	if ( init_plugin_suite_content_protector_is_secondary_content_call() ) {
+		return $content;
+	}
+
 	$settings = init_plugin_suite_content_protector_get_settings();
 
 	if ( init_plugin_suite_content_protector_is_excluded_for_current_user( $settings )
@@ -44,10 +48,6 @@ function init_plugin_suite_content_protector_filter_post_content( $content ) {
 
 	if ( $has_keywords ) {
 		init_plugin_suite_content_protector_ensure_keyword_css( $post->ID, $settings );
-	}
-
-	if ( $has_noise ) {
-		init_plugin_suite_content_protector_enqueue_noise_style();
 	}
 
 	$content = init_plugin_suite_content_protector_transform_text( $content, $post->ID, $has_keywords, $has_noise, $settings );
@@ -85,6 +85,38 @@ function init_plugin_suite_content_protector_filter_post_content( $content ) {
 }
 
 /**
+ * Whether the_content is being run to build text that is not the article
+ * body shown to readers.
+ *
+ * - get_the_excerpt: WordPress builds an automatic excerpt by running
+ *   the_content and stripping the tags. Encrypt mode turned that excerpt
+ *   into the "Please enable JavaScript" notice, and Inject Noise added the
+ *   hidden noise words to it, and cloaked keywords vanished from it. SEO
+ *   plugins use that excerpt for the meta description and social cards.
+ * - wp_head: SEO plugins that run the_content inside <head> (descriptions,
+ *   structured data) had the same problem.
+ *
+ * The visible article body is protected exactly as before.
+ *
+ * @since 1.10
+ *
+ * @return bool
+ */
+function init_plugin_suite_content_protector_is_secondary_content_call() {
+	$secondary = doing_filter( 'get_the_excerpt' ) || doing_action( 'wp_head' );
+
+	/**
+	 * Filters whether the current the_content call is left unprotected
+	 * because it builds an excerpt or <head> metadata, not the article body.
+	 *
+	 * @since 1.10
+	 *
+	 * @param bool $secondary True inside get_the_excerpt or wp_head.
+	 */
+	return (bool) apply_filters( 'init_plugin_suite_content_protector_skip_secondary_content', $secondary );
+}
+
+/**
  * Render the placeholder that decrypt.js replaces with the real content.
  *
  * The payload lives in a non-executable JSON script block inside its own
@@ -117,7 +149,30 @@ function init_plugin_suite_content_protector_render_encrypted_placeholder( $encr
 	// wp_json_encode() escapes "/", so it cannot close the script element.
 	$payload = '<script type="application/json" class="icp-payload">' . $encrypted_json . '</script>';
 
-	return '<div class="icp-protected" data-icp-id="' . esc_attr( (string) (int) $post_id ) . '">'
+	$settings = init_plugin_suite_content_protector_get_settings();
+
+	/**
+	 * Filters the color scheme of the loading skeleton and noscript notice.
+	 *
+	 * 'light' (default look), 'dark', or 'auto' (follows the visitor's
+	 * system setting through prefers-color-scheme). Useful for a theme with
+	 * its own dark mode toggle, e.g. return 'dark' when the visitor's dark
+	 * mode cookie is set. For full control, style the CSS custom properties
+	 * documented in assets/css/style.css instead.
+	 *
+	 * @since 1.10
+	 *
+	 * @param string $scheme  'light', 'dark' or 'auto'.
+	 * @param int    $post_id Post ID.
+	 */
+	$scheme = (string) apply_filters( 'init_plugin_suite_content_protector_skeleton_scheme', $settings['skeleton_scheme'], (int) $post_id );
+
+	$class = 'icp-protected';
+	if ( 'dark' === $scheme || 'auto' === $scheme ) {
+		$class .= ' icp-scheme-' . $scheme;
+	}
+
+	return '<div class="' . esc_attr( $class ) . '" data-icp-id="' . esc_attr( (string) (int) $post_id ) . '">'
 		. $skeleton . $noscript . $payload
 		. '</div>';
 }

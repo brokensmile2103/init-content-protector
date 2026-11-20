@@ -2,16 +2,16 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Content Protector 1.9\n"
+"Project-Id-Version: Init Content Protector 1.10\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-content-protector\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-18T12:00:00+00:00\n"
+"POT-Creation-Date: 2026-11-20T02:50:00+07:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.12.0\n"
+"X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: init-content-protector\n"
 
 #. Plugin Name of the plugin
@@ -40,29 +40,110 @@ msgstr ""
 msgid "https://inithtml.com/"
 msgstr ""
 
+#: includes/crawler-verify.php:108
+msgid "Automatic (recommended): Cloudflare and private-network proxies"
+msgstr ""
+
+#: includes/crawler-verify.php:109
+msgid "Direct connection (REMOTE_ADDR)"
+msgstr ""
+
+#: includes/crawler-verify.php:110
+msgid "Cloudflare (CF-Connecting-IP)"
+msgstr ""
+
+#: includes/crawler-verify.php:111
+msgid "Proxy header: X-Forwarded-For"
+msgstr ""
+
+#: includes/crawler-verify.php:112
+msgid "Proxy header: X-Real-IP"
+msgstr ""
+
+#: includes/crawler-verify.php:113
+msgid "Proxy header: True-Client-IP"
+msgstr ""
+
+#: includes/crawler-verify.php:114
+msgid "Proxy header: Fastly-Client-IP"
+msgstr ""
+
 #: includes/hooks.php:75
 msgid "Init Content Protector: encryption is unavailable on this server (missing OpenSSL or PBKDF2 support). Showing unprotected content. This notice is only visible to administrators."
 msgstr ""
 
-#: includes/hooks.php:113
+#: includes/hooks.php:145
 msgid "Please enable JavaScript in your browser to read this content."
 msgstr ""
 
-#: includes/rest-api.php:77
+#: includes/post-meta.php:50
+msgid "Whether Init Content Protector protects this post (\"1\") when the protection scope is \"Only posts where protection is turned on\"."
+msgstr ""
+
+#: includes/post-meta.php:118
+#: includes/settings-page.php:180
+msgid "Content Protection"
+msgstr ""
+
+#: includes/post-meta.php:140
+msgid "Protect this post"
+msgstr ""
+
+#: includes/post-meta.php:144
+msgid "Applies every protection layer that is switched on in the plugin settings to this post only."
+msgstr ""
+
+#: includes/post-meta.php:146
+#: init-content-protector.php:402
+msgid "Settings"
+msgstr ""
+
+#: includes/post-meta.php:213
+#: includes/post-meta.php:233
+msgid "Protected"
+msgstr ""
+
+#: includes/post-meta.php:235
+msgid "Not protected"
+msgstr ""
+
+#: includes/post-meta.php:268
+msgid "Turn content protection on"
+msgstr ""
+
+#: includes/post-meta.php:269
+msgid "Turn content protection off"
+msgstr ""
+
+#. translators: %s: number of posts
+#: includes/post-meta.php:325
+msgid "Content protection turned on for %s item."
+msgid_plural "Content protection turned on for %s items."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts
+#: includes/post-meta.php:328
+msgid "Content protection turned off for %s item."
+msgid_plural "Content protection turned off for %s items."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/rest-api.php:133
 msgid "Invalid or expired request."
 msgstr ""
 
-#: includes/rest-api.php:84
+#: includes/rest-api.php:138
 msgid "Not available."
 msgstr ""
 
-#: includes/rest-api.php:93
-#: includes/rest-api.php:97
+#: includes/rest-api.php:147
+#: includes/rest-api.php:151
 msgid "Not found."
 msgstr ""
 
 #: includes/settings-page.php:17
-#: includes/settings-page.php:164
+#: includes/settings-page.php:175
 msgid "Init Content Protector Settings"
 msgstr ""
 
@@ -78,296 +159,303 @@ msgstr ""
 msgid "Could not load the sample page to auto-detect. Please enter the selector manually."
 msgstr ""
 
-#: includes/settings-page.php:169
-msgid "Content Protection"
-msgstr ""
-
-#: includes/settings-page.php:172
+#: includes/settings-page.php:183
 msgid "Apply Protection to Post Types"
 msgstr ""
 
-#: includes/settings-page.php:182
+#: includes/settings-page.php:193
 msgid "Choose which post types to apply content protection to."
 msgstr ""
 
-#: includes/settings-page.php:187
-msgid "Content Protection Mode"
+#: includes/settings-page.php:198
+msgid "Protection Scope"
 msgstr ""
 
-#: includes/settings-page.php:192
-msgid "No Protection"
+#: includes/settings-page.php:203
+msgid "All posts of the selected post types (default)"
 msgstr ""
 
-#: includes/settings-page.php:196
-msgid "Encrypt Content (decode via JS)"
-msgstr ""
-
-#: includes/settings-page.php:200
-msgid "Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access."
-msgstr ""
-
-#: includes/settings-page.php:202
-msgid "Decryption uses the browser's built-in Web Crypto API. The bundled CryptoJS fallback (about 60 KB) is only loaded on sites not served over HTTPS, or on demand in the rare browser without Web Crypto support."
-msgstr ""
-
-#: includes/settings-page.php:208
-msgid "Custom Encryption Key"
+#: includes/settings-page.php:207
+msgid "Only posts where protection is turned on"
 msgstr ""
 
 #: includes/settings-page.php:211
-msgid "Use a unique key for this website. Leave blank to use default key from plugin constant."
+msgid "With \"Only posts where protection is turned on\", nothing is protected until you tick \"Protect this post\" in the Content Protection box of the post editor, or use the \"Turn content protection on\" bulk action on the post list. Only the post types selected above get that box."
 msgstr ""
 
-#: includes/settings-page.php:216
-msgid "Decryption Key Delivery"
+#: includes/settings-page.php:213
+msgid "In this mode JavaScript Content Protection, Advanced DevTools Blocking and Anti-Screenshot Protection also only load on protected posts, instead of on every page of the site."
 msgstr ""
 
-#: includes/settings-page.php:221
-msgid "Inline (default)"
+#: includes/settings-page.php:219
+msgid "Content Protection Mode"
 msgstr ""
 
-#: includes/settings-page.php:225
-msgid "Enhanced (fetch key via REST API after page load)"
+#: includes/settings-page.php:224
+msgid "No Protection"
 msgstr ""
 
-#: includes/settings-page.php:229
-msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
+#: includes/settings-page.php:228
+msgid "Encrypt Content (decode via JS)"
 msgstr ""
 
-#: includes/settings-page.php:236
-msgid "Enable Headless Browser Detection"
+#: includes/settings-page.php:232
+msgid "Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access."
 msgstr ""
 
-#: includes/settings-page.php:241
-msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
+#: includes/settings-page.php:234
+msgid "Decryption uses the browser's built-in Web Crypto API. The bundled CryptoJS fallback (about 60 KB) is only loaded on sites not served over HTTPS, or on demand in the rare browser without Web Crypto support."
+msgstr ""
+
+#: includes/settings-page.php:240
+msgid "Loading Skeleton Color Scheme"
+msgstr ""
+
+#: includes/settings-page.php:243
+msgid "Light (default)"
 msgstr ""
 
 #: includes/settings-page.php:244
-msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
+msgid "Dark"
 msgstr ""
 
-#: includes/settings-page.php:246
-msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
+#: includes/settings-page.php:245
+msgid "Automatic (follow the visitor's system setting)"
 msgstr ""
 
-#: includes/settings-page.php:254
-msgid "Allow Verified Search Engine Crawlers"
+#: includes/settings-page.php:248
+msgid "Colors of the loading skeleton and the \"enable JavaScript\" notice shown in Encrypt mode until the content is decrypted. Choose Dark for a dark theme. Automatic only fits themes that themselves follow the visitor's system light/dark setting."
 msgstr ""
 
-#: includes/settings-page.php:259
-msgid "Let Googlebot, Bingbot and other verified search engine crawlers through Headless Browser Detection."
+#. translators: 1: CSS custom property wrapped in <code>, 2: PHP filter name wrapped in <code>
+#: includes/settings-page.php:253
+msgid "Themes with their own dark mode switch can set CSS custom properties such as %1$s on .icp-protected, or use the %2$s filter. See the plugin FAQ."
 msgstr ""
 
-#: includes/settings-page.php:262
-msgid "Googlebot renders pages with a headless browser, so without this option it is treated as automation and only sees the loading skeleton instead of your content. A crawler is let through only after your server confirms it with a reverse and forward DNS lookup (the method Google and Bing document). The User-Agent alone is never trusted, so scrapers that pretend to be Googlebot are still blocked."
+#: includes/settings-page.php:263
+msgid "Custom Encryption Key"
 msgstr ""
 
-#: includes/settings-page.php:264
-msgid "Only used when Headless Browser Detection is enabled. Behind a CDN or reverse proxy, check the Visitor IP Detection setting below. The REST API must also stay reachable for crawlers. See the plugin FAQ."
+#: includes/settings-page.php:266
+msgid "Use a unique key for this website. Leave blank to use default key from plugin constant."
 msgstr ""
 
-#: includes/crawler-verify.php:106
-msgid "Automatic (recommended): Cloudflare and private-network proxies"
+#: includes/settings-page.php:271
+msgid "Decryption Key Delivery"
 msgstr ""
 
-#: includes/crawler-verify.php:107
-msgid "Direct connection (REMOTE_ADDR)"
+#: includes/settings-page.php:276
+msgid "Inline (default)"
 msgstr ""
 
-#: includes/crawler-verify.php:108
-msgid "Cloudflare (CF-Connecting-IP)"
-msgstr ""
-
-#: includes/crawler-verify.php:109
-msgid "Proxy header: X-Forwarded-For"
-msgstr ""
-
-#: includes/crawler-verify.php:110
-msgid "Proxy header: X-Real-IP"
-msgstr ""
-
-#: includes/crawler-verify.php:111
-msgid "Proxy header: True-Client-IP"
-msgstr ""
-
-#: includes/crawler-verify.php:112
-msgid "Proxy header: Fastly-Client-IP"
-msgstr ""
-
-#: includes/settings-page.php:274
-msgid "Visitor IP Detection"
-msgstr ""
-
-#: includes/settings-page.php:282
-msgid "How the plugin finds the real IP address of a visitor, used to verify search engine crawlers. Automatic reads CF-Connecting-IP only when the connection really comes from Cloudflare's published IP ranges, and X-Forwarded-For / X-Real-IP only when it comes from a proxy or load balancer on a private network, so a visitor cannot forge it. Choose a specific option if your CDN or proxy is not covered."
+#: includes/settings-page.php:280
+msgid "Enhanced (fetch key via REST API after page load)"
 msgstr ""
 
 #: includes/settings-page.php:284
-msgid "The proxy header options trust that header completely: only use one when your server accepts traffic from that proxy alone."
-msgstr ""
-
-#: includes/settings-page.php:290
-#, php-format
-msgid "IP address the plugin sees for you: %s"
+msgid "Inline puts the key directly in page HTML (simple, works everywhere, but readable via view-source). Enhanced fetches the key from a REST API endpoint instead, keeping it out of cached/static HTML — better against basic scrapers and compatible with full-page caching. Neither mode makes content truly secret to a determined visitor running the page's own JavaScript. This endpoint is not rate-limited by the plugin; use your server/CDN/WAF if you need that."
 msgstr ""
 
 #: includes/settings-page.php:291
-msgid "unknown"
+msgid "Enable Headless Browser Detection"
+msgstr ""
+
+#: includes/settings-page.php:296
+msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
 msgstr ""
 
 #: includes/settings-page.php:299
-#, php-format
+msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
+msgstr ""
+
+#: includes/settings-page.php:301
+msgid "This raises the cost of automated scraping but cannot detect every setup — well-configured \"stealth\" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee."
+msgstr ""
+
+#: includes/settings-page.php:308
+msgid "Allow Verified Search Engine Crawlers"
+msgstr ""
+
+#: includes/settings-page.php:313
+msgid "Let Googlebot, Bingbot and other verified search engine crawlers through Headless Browser Detection."
+msgstr ""
+
+#: includes/settings-page.php:316
+msgid "Googlebot renders pages with a headless browser, so without this option it is treated as automation and only sees the loading skeleton instead of your content. A crawler is let through only after your server confirms it with a reverse and forward DNS lookup (the method Google and Bing document). The User-Agent alone is never trusted, so scrapers that pretend to be Googlebot are still blocked."
+msgstr ""
+
+#: includes/settings-page.php:318
+msgid "Only used when Headless Browser Detection is enabled. Behind a CDN or reverse proxy, check the Visitor IP Detection setting below. The REST API must also stay reachable for crawlers. See the plugin FAQ."
+msgstr ""
+
+#: includes/settings-page.php:324
+msgid "Visitor IP Detection"
+msgstr ""
+
+#: includes/settings-page.php:332
+msgid "How the plugin finds the real IP address of a visitor, used to verify search engine crawlers. Automatic reads CF-Connecting-IP only when the connection really comes from Cloudflare's published IP ranges, and X-Forwarded-For / X-Real-IP only when it comes from a proxy or load balancer on a private network, so a visitor cannot forge it. Choose a specific option if your CDN or proxy is not covered."
+msgstr ""
+
+#: includes/settings-page.php:334
+msgid "The proxy header options trust that header completely: only use one when your server accepts traffic from that proxy alone."
+msgstr ""
+
+#. translators: %s: IP address wrapped in <code>
+#: includes/settings-page.php:340
+msgid "IP address the plugin sees for you: %s"
+msgstr ""
+
+#: includes/settings-page.php:341
+msgid "unknown"
+msgstr ""
+
+#. translators: %s: IP address wrapped in <code>
+#: includes/settings-page.php:349
 msgid "Direct connection to your server (REMOTE_ADDR): %s"
 msgstr ""
 
-#: includes/settings-page.php:305
+#: includes/settings-page.php:355
 msgid "The first address should be your own public IP. If it is a Cloudflare or proxy address instead, pick the matching option above."
 msgstr ""
 
-#: includes/settings-page.php:252
+#: includes/settings-page.php:361
 msgid "Content Selector (for JS injection)"
 msgstr ""
 
-#: includes/settings-page.php:255
+#: includes/settings-page.php:364
 msgid "Auto-detect"
 msgstr ""
 
 #. translators: %s: example CSS selector wrapped in <code>
-#: includes/settings-page.php:260
-#, php-format
+#: includes/settings-page.php:369
 msgid "CSS selector to locate content wrapper. Used for decryption and JS protection. Example: %s"
 msgstr ""
 
-#: includes/settings-page.php:265
+#: includes/settings-page.php:374
 msgid "\"Auto-detect\" loads your most recent published post in the background and tests common theme selectors against it."
 msgstr ""
 
-#: includes/settings-page.php:272
+#: includes/settings-page.php:381
 msgid "Enable JavaScript Content Protection"
 msgstr ""
 
-#: includes/settings-page.php:277
+#: includes/settings-page.php:386
 msgid "Block printing, prevent right-click and text selection, and interfere with browser developer tools."
 msgstr ""
 
-#: includes/settings-page.php:280
+#: includes/settings-page.php:389
 msgid "Blocks copying, selecting, printing, and inspecting content via JS. Includes right-click disable, keyboard shortcut blocking (Ctrl/⌘ + C, P, U, etc.), and DevTools interference."
 msgstr ""
 
-#: includes/settings-page.php:285
+#: includes/settings-page.php:394
 msgid "Advanced Browser Protection (Experimental)"
 msgstr ""
 
-#: includes/settings-page.php:289
+#: includes/settings-page.php:398
 msgid "Enable Advanced DevTools Blocking"
 msgstr ""
 
-#: includes/settings-page.php:294
+#: includes/settings-page.php:403
 msgid "Actively detect when browser DevTools are opened (not just keyboard shortcuts) and close or redirect away from the tab."
 msgstr ""
 
-#: includes/settings-page.php:297
+#: includes/settings-page.php:406
 msgid "Uses the third-party \"disable-devtool\" library alongside the basic protection above. Independent of \"Enable JavaScript Content Protection\" — use either one alone, or both together."
 msgstr ""
 
-#: includes/settings-page.php:299
+#: includes/settings-page.php:408
 msgid "When DevTools stay open, this tries to close the tab; if the browser blocks that (the common case, since most browsers only allow closing tabs a script itself opened), it redirects the visitor back to your homepage instead."
 msgstr ""
 
-#: includes/settings-page.php:301
+#: includes/settings-page.php:410
 msgid "On the homepage itself the page content is hidden instead of redirected, so a false detection can never cause an endless reload loop."
 msgstr ""
 
-#: includes/settings-page.php:308
+#: includes/settings-page.php:417
 msgid "Enable Anti-Screenshot Protection (Init AntiSnap)"
 msgstr ""
 
-#: includes/settings-page.php:313
+#: includes/settings-page.php:422
 msgid "Detect scroll-jump and DevTools-triggered layout patterns typical of automated screenshot or scraping tools, and briefly blur the page with a warning."
 msgstr ""
 
-#: includes/settings-page.php:316
+#: includes/settings-page.php:425
 msgid "Real readers scrolling and resizing normally are not affected. The blur clears itself automatically after a few seconds, or as soon as the tab regains focus."
 msgstr ""
 
-#: includes/settings-page.php:318
+#: includes/settings-page.php:427
 msgid "Init AntiSnap 6.0 only reacts to the evenly spaced, step-by-step jumps that scroll-and-stitch capture tools make — not to find-in-page, anchor links, scrollbar dragging, zooming, or pop-ups that lock page scrolling."
 msgstr ""
 
-#: includes/settings-page.php:325
+#: includes/settings-page.php:434
 msgid "Inject Noise"
 msgstr ""
 
-#: includes/settings-page.php:330
+#: includes/settings-page.php:439
 msgid "Insert invisible junk spans randomly to confuse crawlers."
 msgstr ""
 
-#: includes/settings-page.php:332
-msgid "Invisible to real readers. Junk spans use display: none."
+#: includes/settings-page.php:442
+msgid "Invisible to real readers. Class names are generated for each post and change every day, and the rules that hide them are printed in the page itself, so scrapers cannot strip the noise with a fixed list. Some real words are also wrapped in look-alike elements, so removing every unknown element removes real text too."
 msgstr ""
 
-#: includes/settings-page.php:338
+#: includes/settings-page.php:449
 msgid "Noise Injection Rate"
 msgstr ""
 
-#: includes/settings-page.php:342
+#: includes/settings-page.php:453
 msgid "Chance (per word) of inserting a noise span. Higher values confuse crawlers more but add more hidden markup to the page. 1–50%, default 7%."
 msgstr ""
 
-#: includes/settings-page.php:347
+#: includes/settings-page.php:458
 msgid "Sensitive Keywords to Obscure"
 msgstr ""
 
 #. translators: %s: example comma-separated keyword list wrapped in <code>
-#: includes/settings-page.php:354
-#, php-format
+#: includes/settings-page.php:465
 msgid "Enter keywords to hide. Separate by commas. Example: %s"
 msgstr ""
 
-#: includes/settings-page.php:359
+#: includes/settings-page.php:470
 msgid "These will be replaced visually using CSS pseudo-elements and hidden from raw HTML."
 msgstr ""
 
-#: includes/settings-page.php:364
+#: includes/settings-page.php:475
 msgid "Global Exceptions"
 msgstr ""
 
-#: includes/settings-page.php:367
+#: includes/settings-page.php:478
 msgid "Exclude User Roles"
 msgstr ""
 
-#: includes/settings-page.php:378
+#: includes/settings-page.php:489
 msgid "This applies to every protection feature on this page at once — Content Protection Mode, JavaScript Content Protection, Advanced DevTools Blocking, Anti-Screenshot Protection, Inject Noise, and Sensitive Keywords. Selected roles are fully excluded from all of them together and will always see the original, unprotected content — you can't exclude a role from just one feature."
 msgstr ""
 
-#: includes/settings-page.php:388
+#: includes/settings-page.php:499
 msgid "Important Notes When Using This Plugin:"
 msgstr ""
 
-#: includes/settings-page.php:390
+#: includes/settings-page.php:501
 msgid "Use encryption only if you understand its impact on SEO, caching, and content accessibility."
 msgstr ""
 
-#: includes/settings-page.php:391
+#: includes/settings-page.php:502
 msgid "JavaScript protection relies on client-side execution. It can be bypassed by experienced users."
 msgstr ""
 
-#: includes/settings-page.php:392
+#: includes/settings-page.php:503
 msgid "For best results, combine multiple protection layers (encryption, JS, keyword cloaking)."
 msgstr ""
 
-#: includes/settings-page.php:393
+#: includes/settings-page.php:504
 msgid "This plugin does not prevent content theft 100%. It raises the difficulty level for scraping."
 msgstr ""
 
-#: includes/settings-page.php:394
+#: includes/settings-page.php:505
 msgid "DevTools blocking, anti-screenshot detection, and headless browser detection are all heuristic and best-effort. They can occasionally trigger on unusual browsers/extensions, and can be bypassed by a determined user or well-configured automation tooling — treat them as an extra deterrent layer, not a guarantee."
 msgstr ""
 
-#: init-content-protector.php:348
+#: init-content-protector.php:377
 msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
-msgstr ""
-
-#: init-content-protector.php:373
-msgid "Settings"
 msgstr ""

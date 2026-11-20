@@ -119,11 +119,19 @@ function init_plugin_suite_content_protector_rest_is_same_site( WP_REST_Request 
  * @return WP_REST_Response|WP_Error
  */
 function init_plugin_suite_content_protector_rest_get_key( WP_REST_Request $request ) {
-	if ( ! init_plugin_suite_content_protector_rest_is_same_site( $request ) ) {
+	$settings = init_plugin_suite_content_protector_get_settings();
+
+	// 1.10: a verified search engine crawler is also accepted. A crawler
+	// rendering a page from a full-page cache can carry an expired nonce and
+	// may not send Sec-Fetch-Site, and would then only see the skeleton. DNS
+	// is only queried when the User-Agent claims to be a crawler, and the
+	// result is cached (see crawler-verify.php).
+	if ( ! init_plugin_suite_content_protector_rest_is_same_site( $request )
+		&& ! ( init_plugin_suite_content_protector_is_enabled( $settings, 'headless_allow_crawlers' )
+			&& '' !== init_plugin_suite_content_protector_verified_crawler() )
+	) {
 		return new WP_Error( 'icp_invalid_nonce', __( 'Invalid or expired request.', 'init-content-protector' ), array( 'status' => 403 ) );
 	}
-
-	$settings = init_plugin_suite_content_protector_get_settings();
 
 	$rest_mode = isset( $settings['encrypt_delivery'] ) && 'rest' === $settings['encrypt_delivery'];
 	if ( ! init_plugin_suite_content_protector_is_encrypt_mode( $settings ) || ! $rest_mode ) {

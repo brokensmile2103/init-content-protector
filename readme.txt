@@ -2,9 +2,9 @@
 Contributors: brokensmile.2103
 Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
-Tested up to: 7.1
+Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 1.9
+Stable tag: 1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,9 +28,9 @@ GitHub repository: [https://github.com/brokensmile2103/init-content-protector](h
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
   - Optional Headless Browser Detection: withholds decryption from sessions that look like Puppeteer/Playwright/Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor; verified search engine crawlers (Googlebot, Bingbot...) are let through by reverse DNS check
 - Keyword cloaking using CSS pseudo-elements (whole words only, Unicode aware, never inside HTML attributes or code blocks)
-- Invisible noise injection to confuse crawlers — only ever injected into plain text, never inside HTML tags or inside `<script>`, `<style>`, `<pre>`, `<select>`, `<svg>`, and similar elements; injection rate is configurable (1–50%)
+- Invisible noise injection to confuse crawlers — class names are generated for each post and rotate daily, the hiding rules are printed in the page itself, and look-alike decoy elements wrap some real words, so noise cannot be stripped with a fixed list; only ever injected into plain text, never inside HTML tags or inside `<script>`, `<style>`, `<pre>`, `<select>`, `<svg>`, and similar elements; injection rate is configurable (1–50%)
 - Automatic AMP detection — protection is skipped on AMP endpoints instead of producing invalid markup
-- Per-post type configuration
+- Per-post type configuration, protecting either every post of those types or only the posts you switch on (editor box and bulk actions)
 - Excluded user roles (protection never applies to selected roles)
 - Custom encryption key per site
 - Custom content selector support, with an Auto-detect button in settings
@@ -51,6 +51,13 @@ If you enable full content encryption, search engines that do not run JavaScript
 = Does this plugin support custom post types? =
 Yes. You can choose which post types are protected in the settings page.
 
+= Can I protect only some posts instead of every post of a post type? =
+Yes. Since 1.10, set **Protection Scope** to **Only posts where protection is turned on**. Nothing is protected until you switch a post on: tick **Protect this post** in the **Content Protection** box of the post editor (classic and block editor), or select several posts on the post list and use the **Turn content protection on** bulk action. A lock column on the post list shows which posts are protected. Only the post types chosen under **Apply Protection to Post Types** get the box.
+
+In this mode every layer follows the switch: encryption, noise and keyword cloaking apply to switched-on posts only, and JavaScript Content Protection, Advanced DevTools Blocking and Anti-Screenshot Protection only load on those posts instead of on every page of the site. The switches are kept when you change the scope back, so you can move between both modes freely.
+
+Developers can decide per post with the `init_plugin_suite_content_protector_is_protected_post` filter.
+
 = Can I use my own encryption key? =
 Yes. You can set a custom key per site for added security.
 
@@ -65,6 +72,18 @@ The plugin automatically detects AMP endpoints and skips all protection there (J
 
 = Can I control how much noise is injected? =
 Yes, via the "Noise Injection Rate" setting (1–50% per word, default 7%). Noise is only ever inserted into plain text — never inside HTML tags or inside elements like `<script>`, `<style>`, `<select>`, or `<svg>` — so it can't corrupt markup.
+
+= How does noise injection work since 1.10? =
+Up to 1.9 every site used the same fixed list of noise class names, so a scraper could remove the noise once with that public list. Since 1.10:
+
+* Each protected post gets its own generated class names, which look like ordinary theme classes and change every day. They are derived from your site's secret keys, so they cannot be predicted.
+* The rules that hide them are printed inline in the page itself, written in mixed selector forms and shuffled together with harmless rules.
+* Some real words are wrapped in visible look-alike elements with the same kind of class names, and noise elements carry those classes too. Removing every element with an unknown class removes real text as well; the only way to tell noise from text is to evaluate the page's CSS.
+
+Readers see exactly the same text as before. Developers can change how long class names stay the same with the `init_plugin_suite_content_protector_noise_rotation` filter (seconds, default one day, `0` = new names on every request; a fixed period keeps page caches and CSS optimizers stable).
+
+= Why does the post excerpt or meta description show the real text? =
+WordPress builds automatic excerpts by running the post content through the same filter that applies protection, and SEO plugins use that excerpt (or run the content inside `<head>`) for the meta description and social cards. Up to 1.9 those got the "Please enable JavaScript" notice in Encrypt mode, or the hidden noise words and missing keywords. Since 1.10 protection is only applied to the article body itself. To protect those calls too, return `false` from the `init_plugin_suite_content_protector_skip_secondary_content` filter.
 
 = What's the difference between "Enable JavaScript Content Protection" and the new "Advanced DevTools Blocking" / "Anti-Screenshot Protection" options? =
 "Enable JavaScript Content Protection" is the plugin's original, lightweight protection: it blocks common keyboard shortcuts, right-click, text selection, and printing. "Advanced DevTools Blocking" adds a dedicated third-party detection library (`disable-devtool`) that recognizes DevTools being opened through several different methods beyond keyboard shortcuts, and reacts by closing or redirecting the tab. "Anti-Screenshot Protection" (Init AntiSnap) is a separate heuristic that watches for scroll-jump and layout-shift patterns typical of automated screenshot/scraping tools and briefly blurs the page instead. All three are independent — enable any combination that fits your site.
@@ -90,6 +109,24 @@ Things to check if a crawler is still blocked:
 
 Developers can adjust it with the `init_plugin_suite_content_protector_verified_crawlers` (crawlers and their reverse DNS domains), `init_plugin_suite_content_protector_pre_crawler_dns_check` (for example to compare against published IP ranges) and `init_plugin_suite_content_protector_is_verified_crawler` filters. Verification only matters when Headless Browser Detection is enabled in Encrypt mode.
 
+= Does the loading skeleton support dark mode? =
+Yes, since 1.10. Under **Loading Skeleton Color Scheme** choose **Light** (default), **Dark**, or **Automatic**, which follows the visitor's system light/dark setting (only choose it if your theme does the same). The scheme also applies to the "enable JavaScript" notice.
+
+If your theme has its own dark mode switch, every color is a CSS custom property you can set on the `.icp-protected` wrapper, for example:
+
+    html.dark .icp-protected {
+        --icp-skeleton-bg: #2b2f36;
+        --icp-skeleton-shine: rgba(255, 255, 255, 0.06);
+    }
+
+Available properties: `--icp-skeleton-bg`, `--icp-skeleton-shine`, `--icp-skeleton-radius`, `--icp-skeleton-height`, `--icp-skeleton-gap`, `--icp-noscript-bg`, `--icp-noscript-border`, `--icp-noscript-color`. Your rules always win over the built-in schemes. Developers can also pick the scheme per request or per post in PHP with the `init_plugin_suite_content_protector_skeleton_scheme` filter (return `light`, `dark` or `auto`), for example from the theme's dark mode cookie:
+
+    add_filter( 'init_plugin_suite_content_protector_skeleton_scheme', function ( $scheme ) {
+        return ( isset( $_COOKIE['theme_mode'] ) && 'dark' === $_COOKIE['theme_mode'] ) ? 'dark' : $scheme;
+    } );
+
+Note: when the page is served from a full-page cache, a scheme picked per visitor in PHP is cached too; the CSS approach works with any cache.
+
 = Is there a JavaScript event for when encrypted content has been decrypted? =
 Yes. In Encrypt mode the article first shows a loading skeleton, so scripts that scan the page on load (search term highlighting, table of contents, reading progress, lightboxes) run before the real text exists. After a block has been successfully decrypted and inserted into the page, the plugin fires an `init-content-decrypted` event. It works the same for Inline and Enhanced (REST API) key delivery, and it is never fired when decryption fails or is withheld (for example by Headless Browser Detection).
 
@@ -114,9 +151,27 @@ Init AntiSnap 6.0 only reacts to repeated, equally sized scroll steps made by sc
 
 == Screenshots ==
 
-1. **Settings Page** – Configure protection methods, encryption, keyword cloaking, and per-post type options.
+1. **Content Protection** – Post types, protection scope (all posts or only switched-on posts), encryption mode, loading skeleton color scheme, encryption key, key delivery, headless browser detection, verified search engine crawlers, visitor IP detection, content selector with auto-detect, and JavaScript content protection.
+2. **Advanced Browser Protection (Experimental)** – Advanced DevTools blocking, anti-screenshot protection (Init AntiSnap), noise injection and its rate, and sensitive keywords to obscure.
+3. **Global Exceptions** – User roles excluded from every protection layer, and important notes on using the plugin.
 
 == Changelog ==
+
+= 1.10 – November 20, 2026 =
+- New: **Protection Scope** setting. Choose **Only posts where protection is turned on** to protect nothing by default and switch protection on per post, with a **Content Protection** box in the post editor (classic and block editor) for the selected post types, **Turn content protection on / off** bulk actions and a lock column on the post list. In this mode JavaScript Content Protection, Advanced DevTools Blocking and Anti-Screenshot Protection also only load on protected posts. The default scope, all posts of the selected post types, works exactly as before.
+- New: noise injection no longer uses a fixed list of class names. Every protected post gets its own generated class names that rotate daily and look like ordinary theme classes, and the rules that hide them are printed inline in the page (mixed selector forms, shuffled with harmless rules). Visible look-alike elements now wrap some real words, and noise elements carry the same decoy classes, so scrapers can no longer strip noise with a fixed list or by removing unknown elements. More element types are used for noise, and the `aria-hidden` attribute that made noise easy to spot was removed (noise is `display: none`, which already hides it from screen readers). Readers see exactly the same text as before.
+- New: dark mode for the loading skeleton and the "enable JavaScript" notice. New setting **Loading Skeleton Color Scheme** (Light, Dark, or Automatic following the visitor's system setting). Every color is now a CSS custom property (`--icp-skeleton-bg`, `--icp-skeleton-shine`, `--icp-noscript-bg`...) that themes can set on `.icp-protected` for their own dark mode switch, and the new `init_plugin_suite_content_protector_skeleton_scheme` filter picks the scheme in PHP.
+- The stylesheet `style.css` is now only loaded in Encrypt mode (loading skeleton), and the old fixed noise class rules were removed from it (about 100 selectors). Purge your page/CDN cache after updating so no page built by 1.9 is still served.
+- Fixed: automatic excerpts and SEO meta descriptions built from the post content showed the "Please enable JavaScript" notice in Encrypt mode, or contained the hidden noise words and lost cloaked keywords. Protection is now skipped when the content is run for an excerpt or inside `<head>`; the article body is protected as before. New filter: `init_plugin_suite_content_protector_skip_secondary_content`.
+- Fixed (1.9): Enhanced key delivery could refuse a verified search engine crawler that rendered a cached page with an expired nonce, leaving it on the loading skeleton. A crawler verified by reverse DNS is now accepted too.
+- Fixed (1.9): without a persistent object cache, failed crawler checks were not remembered, so a bot sending a fake Googlebot User-Agent made the server repeat slow DNS lookups on every request. Failures are now remembered for 10 minutes in a single size-capped transient (one database row at most).
+- Fixed (1.9): an invalid IP range added through the `init_plugin_suite_content_protector_cloudflare_ranges` filter printed PHP warnings on every request.
+- Fixed: saving the settings removed backslashes from the encryption key, keywords and content selector (the values were unslashed twice).
+- Fixed (1.9): several files had mixed line endings; every file now uses CRLF.
+- Performance: settings, keyword lists and keyword matchers are memoized per request instead of being rebuilt for every enqueue callback and every content call.
+- New filters: `init_plugin_suite_content_protector_is_protected_post`, `init_plugin_suite_content_protector_noise_rotation`, `init_plugin_suite_content_protector_skip_secondary_content`, `init_plugin_suite_content_protector_skeleton_scheme`.
+- Uninstall also removes the per-post switches and the failed crawler check list.
+- Updated Vietnamese translation.
 
 = 1.9 – November 18, 2026 =
 - Fixed: Headless Browser Detection blocked Googlebot. Googlebot renders pages with a headless Chromium, so it scored as automation, never got the decrypted content and only saw the loading skeleton (visible in Google Search Console and the Rich Results Test). New option **Allow Verified Search Engine Crawlers** (on by default, also for existing sites) lets real crawlers through.
@@ -238,3 +293,8 @@ This plugin optionally uses "Init AntiSnap 6.0" by Init HTML (MIT licensed) for 
 
 This plugin is licensed under the GPLv2 or later.  
 You are free to use, modify, and distribute it under the same license.
+
+== Upgrade Notice ==
+
+= 1.10 =
+New "Only posts where protection is turned on" scope with a per-post switch, and generated noise class names that rotate daily. Purging your page cache after updating is recommended.

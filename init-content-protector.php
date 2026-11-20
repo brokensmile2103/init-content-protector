@@ -3,7 +3,7 @@
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
  * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.9
+ * Version: 1.10
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.9' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.10' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG', 'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION', 'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_FILE', __FILE__ );
@@ -30,9 +30,11 @@ define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_LANGUAGES_PATH', INIT_PLUGIN_SUITE_
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH', INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_PATH . 'includes/' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ENCRYPT_KEY', 'init@secure' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_KEYWORD_SALT', 'init_salt_' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_META_KEY', '_init_content_protector_enabled' );
 
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'utils.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'settings-page.php';
+require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'post-meta.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'crawler-verify.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'rest-api.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'hooks.php';
@@ -50,7 +52,13 @@ require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'hooks.php';
  */
 
 /**
- * Enqueue the skeleton + noise stylesheet.
+ * Enqueue the stylesheet for encrypted content (loading skeleton, noscript
+ * notice).
+ *
+ * Since 1.10 the noise hiding rules are generated per post and printed
+ * inline (see init_plugin_suite_content_protector_ensure_noise_css()), so
+ * this file is no longer needed for noise. The function name is kept for
+ * backward compatibility.
  *
  * @return void
  */
@@ -200,7 +208,10 @@ function init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, 
  */
 
 /**
- * Enqueue the noise/skeleton CSS on protected singular views.
+ * Enqueue the noise rules and skeleton CSS on protected singular views.
+ *
+ * The noise rules of the queried post go into <head>, so the generated
+ * classes are already hidden when the content is parsed (no flash).
  *
  * @return void
  */
@@ -211,17 +222,25 @@ function init_plugin_suite_content_protector_maybe_enqueue_noise_css() {
 		return;
 	}
 
-	if ( ! init_plugin_suite_content_protector_is_enabled( $settings, 'inject_noise' )
-		&& ! init_plugin_suite_content_protector_is_encrypt_mode( $settings )
-	) {
+	$noise   = init_plugin_suite_content_protector_is_enabled( $settings, 'inject_noise' );
+	$encrypt = init_plugin_suite_content_protector_is_encrypt_mode( $settings );
+
+	if ( ! $noise && ! $encrypt ) {
 		return;
 	}
 
-	if ( ! init_plugin_suite_content_protector_get_protected_queried_post( $settings ) ) {
+	$post = init_plugin_suite_content_protector_get_protected_queried_post( $settings );
+	if ( ! $post ) {
 		return;
 	}
 
-	init_plugin_suite_content_protector_enqueue_noise_style();
+	if ( $noise ) {
+		init_plugin_suite_content_protector_ensure_noise_css( $post->ID );
+	}
+
+	if ( $encrypt ) {
+		init_plugin_suite_content_protector_enqueue_noise_style();
+	}
 }
 add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_maybe_enqueue_noise_css', 99 );
 
@@ -258,6 +277,7 @@ function init_plugin_suite_content_protector_enqueue_js_protect() {
 
 	if ( ! init_plugin_suite_content_protector_is_enabled( $settings, 'js_protect' )
 		|| init_plugin_suite_content_protector_should_skip_frontend( $settings )
+		|| ! init_plugin_suite_content_protector_browser_layers_apply( $settings )
 	) {
 		return;
 	}
@@ -291,6 +311,7 @@ function init_plugin_suite_content_protector_enqueue_disable_devtool() {
 
 	if ( ! init_plugin_suite_content_protector_is_enabled( $settings, 'disable_devtool' )
 		|| init_plugin_suite_content_protector_should_skip_frontend( $settings )
+		|| ! init_plugin_suite_content_protector_browser_layers_apply( $settings )
 	) {
 		return;
 	}
@@ -334,6 +355,7 @@ function init_plugin_suite_content_protector_enqueue_antisnap() {
 
 	if ( ! init_plugin_suite_content_protector_is_enabled( $settings, 'antisnap' )
 		|| init_plugin_suite_content_protector_should_skip_frontend( $settings )
+		|| ! init_plugin_suite_content_protector_browser_layers_apply( $settings )
 	) {
 		return;
 	}

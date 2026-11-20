@@ -19,8 +19,12 @@ function init_plugin_suite_content_protector_uninstall_site() {
 
 	delete_option( 'init_plugin_suite_content_protector_settings' );
 
+	// Per-post "Protect this post" switches (1.10+).
+	delete_post_meta_by_key( '_init_content_protector_enabled' );
+
 	// Transients written by this plugin: encrypted content ("icp_enc_*",
-	// versions 1.4–1.6) and verified crawler IPs ("icp_bot_*", 1.9+).
+	// versions 1.4–1.6), verified crawler IPs ("icp_bot_*", 1.9+) and the
+	// failed crawler check list ("icp_bot_negative", 1.10+).
 	// There is no API to delete transients by prefix, hence the direct query.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-off cleanup on uninstall.
 	$wpdb->query(

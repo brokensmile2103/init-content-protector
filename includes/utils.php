@@ -22,6 +22,7 @@ defined( 'ABSPATH' ) || exit;
 function init_plugin_suite_content_protector_default_settings() {
 	return array(
 		'post_types'              => array(),
+		'protection_scope'        => 'all',
 		'content_mode'            => 'none',
 		'encrypt_key'             => '',
 		'encrypt_delivery'        => 'inline',
@@ -29,6 +30,7 @@ function init_plugin_suite_content_protector_default_settings() {
 		'headless_allow_crawlers' => '1',
 		'client_ip_source'        => 'auto',
 		'content_selector'        => '.entry-content',
+		'skeleton_scheme'         => 'light',
 		'js_protect'              => '0',
 		'disable_devtool'         => '0',
 		'antisnap'                => '0',
@@ -45,9 +47,26 @@ function init_plugin_suite_content_protector_default_settings() {
  * Merging with the defaults means callers never have to guard against a
  * missing key or a corrupted (non-array) option value.
  *
+ * The normalized array is memoized per site for the request (it is read by
+ * every enqueue callback and every the_content call), and dropped again as
+ * soon as the option is added, updated or deleted.
+ *
+ * @param bool $refresh Optional. Drop the memoized copy first. Default false.
  * @return array<string, mixed>
  */
-function init_plugin_suite_content_protector_get_settings() {
+function init_plugin_suite_content_protector_get_settings( $refresh = false ) {
+	static $memo = array();
+
+	$blog_id = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
+
+	if ( $refresh ) {
+		$memo = array();
+	}
+
+	if ( isset( $memo[ $blog_id ] ) ) {
+		return $memo[ $blog_id ];
+	}
+
 	$option = get_option( INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, array() );
 
 	if ( ! is_array( $option ) ) {
@@ -63,8 +82,30 @@ function init_plugin_suite_content_protector_get_settings() {
 		$settings['content_selector'] = '.entry-content';
 	}
 
+	if ( ! in_array( $settings['skeleton_scheme'], array( 'light', 'dark', 'auto' ), true ) ) {
+		$settings['skeleton_scheme'] = 'light';
+	}
+
+	if ( 'selected' !== $settings['protection_scope'] ) {
+		$settings['protection_scope'] = 'all';
+	}
+
+	$memo[ $blog_id ] = $settings;
+
 	return $settings;
 }
+
+/**
+ * Drop the memoized settings whenever the option changes.
+ *
+ * @return void
+ */
+function init_plugin_suite_content_protector_flush_settings_memo() {
+	init_plugin_suite_content_protector_get_settings( true );
+}
+add_action( 'add_option_' . INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, 'init_plugin_suite_content_protector_flush_settings_memo' );
+add_action( 'update_option_' . INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, 'init_plugin_suite_content_protector_flush_settings_memo' );
+add_action( 'delete_option_' . INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION, 'init_plugin_suite_content_protector_flush_settings_memo' );
 
 /**
  * Whether a boolean-style ('1' / '0') setting is switched on.
@@ -174,7 +215,35 @@ function init_plugin_suite_content_protector_should_skip_frontend( $settings ) {
 }
 
 /**
- * Whether a given post belongs to a protected post type.
+ * Whether the "Only selected posts" protection scope is active.
+ *
+ * @param array $settings Settings array.
+ * @return bool
+ */
+function init_plugin_suite_content_protector_is_selected_scope( $settings ) {
+	return isset( $settings['protection_scope'] ) && 'selected' === $settings['protection_scope'];
+}
+
+/**
+ * Whether protection is switched on for one post in its editor box.
+ *
+ * Only consulted in the "Only selected posts" scope.
+ *
+ * @since 1.10
+ *
+ * @param int $post_id Post ID.
+ * @return bool
+ */
+function init_plugin_suite_content_protector_is_post_opted_in( $post_id ) {
+	return '1' === (string) get_post_meta( (int) $post_id, INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_META_KEY, true );
+}
+
+/**
+ * Whether a given post is protected.
+ *
+ * Scope "all" (default): every post of a selected post type.
+ * Scope "selected" (1.10): only posts of a selected post type whose
+ * "Protect this post" box is ticked in the editor.
  *
  * @param WP_Post|null $post     Post object.
  * @param array        $settings Settings array.
@@ -185,7 +254,43 @@ function init_plugin_suite_content_protector_is_protected_post( $post, $settings
 		return false;
 	}
 
-	return in_array( $post->post_type, (array) $settings['post_types'], true );
+	$protected = in_array( $post->post_type, (array) $settings['post_types'], true );
+
+	if ( $protected && init_plugin_suite_content_protector_is_selected_scope( $settings ) ) {
+		$protected = init_plugin_suite_content_protector_is_post_opted_in( $post->ID );
+	}
+
+	/**
+	 * Filters whether a post is protected.
+	 *
+	 * @since 1.10
+	 *
+	 * @param bool    $protected Whether the post is protected.
+	 * @param WP_Post $post      Post object.
+	 * @param array   $settings  Plugin settings.
+	 */
+	return (bool) apply_filters( 'init_plugin_suite_content_protector_is_protected_post', $protected, $post, $settings );
+}
+
+/**
+ * Whether the browser-side layers (JavaScript Content Protection, Advanced
+ * DevTools Blocking, Anti-Screenshot Protection) load on this view.
+ *
+ * Scope "all": everywhere on the front end, as in every earlier version.
+ * Scope "selected": only on the singular view of a protected post, so a post
+ * that is not switched on behaves as if the plugin were not installed.
+ *
+ * @since 1.10
+ *
+ * @param array $settings Settings array.
+ * @return bool
+ */
+function init_plugin_suite_content_protector_browser_layers_apply( $settings ) {
+	if ( ! init_plugin_suite_content_protector_is_selected_scope( $settings ) ) {
+		return true;
+	}
+
+	return null !== init_plugin_suite_content_protector_get_protected_queried_post( $settings );
 }
 
 /**
@@ -389,9 +494,15 @@ function init_plugin_suite_content_protector_get_keywords( $settings = null ) {
 		$settings = init_plugin_suite_content_protector_get_settings();
 	}
 
+	static $memo = array();
+
 	$raw = (string) $settings['keywords'];
 	if ( '' === trim( $raw ) ) {
 		return array();
+	}
+
+	if ( isset( $memo[ $raw ] ) ) {
+		return $memo[ $raw ];
 	}
 
 	$keywords = array_map( 'trim', explode( ',', $raw ) );
@@ -402,7 +513,9 @@ function init_plugin_suite_content_protector_get_keywords( $settings = null ) {
 		}
 	);
 
-	return array_values( array_unique( $keywords ) );
+	$memo[ $raw ] = array_values( array_unique( $keywords ) );
+
+	return $memo[ $raw ];
 }
 
 /**
@@ -523,9 +636,29 @@ function init_plugin_suite_content_protector_ensure_keyword_css( $content_id, $s
 
 	$printed[ $content_id ] = true;
 
-	$handle = 'init-content-keyword-hide';
+	init_plugin_suite_content_protector_add_inline_css( 'init-content-keyword-hide', $css );
+}
+
+/**
+ * Attach inline CSS to a source-less style handle.
+ *
+ * Before the <head> styles are printed, the CSS goes to `$handle` (printed in
+ * <head>, no flash of unstyled content). After that, it goes to
+ * `$handle-late`, which WordPress prints in the footer.
+ *
+ * @since 1.10
+ *
+ * @param string $handle Base style handle.
+ * @param string $css    CSS.
+ * @return void
+ */
+function init_plugin_suite_content_protector_add_inline_css( $handle, $css ) {
+	if ( '' === $css ) {
+		return;
+	}
+
 	if ( wp_style_is( $handle, 'done' ) ) {
-		$handle = 'init-content-keyword-hide-late';
+		$handle .= '-late';
 	}
 
 	if ( ! wp_style_is( $handle, 'registered' ) ) {
@@ -575,9 +708,16 @@ add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_s
  * @return array{0: string, 1: array<string, string>}|null Pattern and needle => class map.
  */
 function init_plugin_suite_content_protector_keyword_matcher( $content_id, $settings = null ) {
+	static $memo = array();
+
 	$keywords = init_plugin_suite_content_protector_get_keywords( $settings );
 	if ( empty( $keywords ) ) {
 		return null;
+	}
+
+	$memo_key = (int) $content_id . '|' . md5( implode( ',', $keywords ) );
+	if ( isset( $memo[ $memo_key ] ) ) {
+		return $memo[ $memo_key ];
 	}
 
 	$map = array();
@@ -610,26 +750,299 @@ function init_plugin_suite_content_protector_keyword_matcher( $content_id, $sett
 		)
 	);
 
-	return array( '/(?<![\p{L}\p{N}_])(?:' . $alternation . ')(?![\p{L}\p{N}_])/u', $map );
+	$memo[ $memo_key ] = array( '/(?<![\p{L}\p{N}_])(?:' . $alternation . ')(?![\p{L}\p{N}_])/u', $map );
+
+	return $memo[ $memo_key ];
 }
 
 /*
  * ---------------------------------------------------------------------------
  * Noise injection
+ *
+ * 1.10: class names are no longer a fixed list shipped in style.css (a
+ * scraper could strip that public list once and be done). Every protected
+ * post now gets its own set of generated class names, rotated every day by
+ * default, and the CSS that hides them is printed inline in the same page.
+ * To make "strip every element with an unknown class" useless as well, some
+ * real words are wrapped in visible decoy elements whose class names look
+ * exactly the same, and noise elements carry decoy classes too. Telling
+ * noise from text now means evaluating the page's CSS cascade.
  * ---------------------------------------------------------------------------
  */
 
 /**
- * Class names used for hidden noise elements (hidden by assets/css/style.css).
+ * How long (seconds) the generated noise class names stay the same for a post.
+ *
+ * Stable names keep full-page caches and CSS optimizers (which may hash
+ * inline CSS into files) from churning on every request. The names depend on
+ * this site's secret keys, so they cannot be predicted from outside.
+ *
+ * @since 1.10
+ *
+ * @return int Seconds. 0 means new names on every request.
+ */
+function init_plugin_suite_content_protector_noise_rotation() {
+	/**
+	 * Filters how long the generated noise class names stay the same.
+	 *
+	 * @since 1.10
+	 *
+	 * @param int $seconds Seconds. Default DAY_IN_SECONDS. 0 = new names on every request.
+	 */
+	return max( 0, (int) apply_filters( 'init_plugin_suite_content_protector_noise_rotation', DAY_IN_SECONDS ) );
+}
+
+/**
+ * Create a number generator for noise class names and CSS.
+ *
+ * With a seed the sequence is deterministic (HMAC-SHA256 in counter mode),
+ * otherwise it is cryptographically random.
+ *
+ * @since 1.10
+ *
+ * @param string $seed Seed, or '' for a random sequence.
+ * @return callable Function( int $max ): int in [0, $max).
+ */
+function init_plugin_suite_content_protector_noise_rng( $seed ) {
+	$buffer  = '';
+	$offset  = 0;
+	$counter = 0;
+
+	return static function ( $max ) use ( $seed, &$buffer, &$offset, &$counter ) {
+		$max = max( 1, (int) $max );
+
+		if ( $offset + 2 > strlen( $buffer ) ) {
+			if ( '' !== $seed ) {
+				$chunk = hash_hmac( 'sha256', (string) $counter, $seed, true );
+			} else {
+				try {
+					$chunk = random_bytes( 32 );
+				} catch ( Exception $e ) {
+					$chunk = hash( 'sha256', wp_generate_password( 32, true, true ) . microtime(), true );
+				}
+			}
+			++$counter;
+			$buffer = substr( $buffer, $offset ) . $chunk;
+			$offset = 0;
+		}
+
+		$value   = ( ord( $buffer[ $offset ] ) << 8 ) | ord( $buffer[ $offset + 1 ] );
+		$offset += 2;
+
+		return $value % $max;
+	};
+}
+
+/**
+ * Generate one class name that looks like an ordinary theme class.
+ *
+ * Built from at least three consonant-vowel syllables (so it cannot be a
+ * short common word such as "menu" or "logo"), sometimes hyphenated,
+ * sometimes with a trailing digit: "ravoken", "lu-misato", "kebira4".
+ *
+ * @since 1.10
+ *
+ * @param callable $next Number generator from noise_rng().
+ * @return string
+ */
+function init_plugin_suite_content_protector_noise_class_name( $next ) {
+	$consonants = 'bcdfghjklmnprstvz';
+	$vowels     = 'aeiou';
+	$finals     = 'lnrs';
+
+	$syllables = 3 + $next( 2 );
+	$hyphen_at = 0 === $next( 3 ) ? 1 + $next( $syllables - 1 ) : 0;
+	$name      = '';
+
+	for ( $i = 0; $i < $syllables; $i++ ) {
+		if ( $i > 0 && $i === $hyphen_at ) {
+			$name .= '-';
+		}
+
+		$name .= $consonants[ $next( strlen( $consonants ) ) ] . $vowels[ $next( strlen( $vowels ) ) ];
+
+		if ( 0 === $next( 5 ) ) {
+			$name .= $finals[ $next( strlen( $finals ) ) ];
+		}
+	}
+
+	if ( 0 === $next( 3 ) ) {
+		$name .= (string) $next( 10 );
+	}
+
+	return $name;
+}
+
+/**
+ * Shuffle a list with a given number generator (Fisher–Yates).
+ *
+ * @since 1.10
+ *
+ * @param array    $items List.
+ * @param callable $next  Number generator from noise_rng().
+ * @return array
+ */
+function init_plugin_suite_content_protector_noise_shuffle( array $items, $next ) {
+	$items = array_values( $items );
+
+	for ( $i = count( $items ) - 1; $i > 0; $i-- ) {
+		$j           = $next( $i + 1 );
+		$swap        = $items[ $i ];
+		$items[ $i ] = $items[ $j ];
+		$items[ $j ] = $swap;
+	}
+
+	return $items;
+}
+
+/**
+ * Turn a list of selectors into CSS rules of 1–4 selectors each.
+ *
+ * @since 1.10
+ *
+ * @param string[] $selectors    Selectors.
+ * @param string[] $declarations Declaration blocks to pick from.
+ * @param callable $next         Number generator from noise_rng().
+ * @return string[]
+ */
+function init_plugin_suite_content_protector_noise_rules( array $selectors, array $declarations, $next ) {
+	$rules = array();
+
+	while ( ! empty( $selectors ) ) {
+		$group   = array_splice( $selectors, 0, 1 + $next( 4 ) );
+		$rules[] = implode( ',', $group ) . '{' . $declarations[ $next( count( $declarations ) ) ] . '}';
+	}
+
+	return $rules;
+}
+
+/**
+ * Generated noise class names and their CSS for one post.
+ *
+ * - 'hidden': classes that hide an element (display: none).
+ * - 'decoy':  classes with no visible effect, used on real words and on
+ *             noise elements alike.
+ * - 'css':    the rules, with mixed selector forms, grouped and shuffled.
+ *
+ * @since 1.10
+ *
+ * @param int $content_id Post ID.
+ * @return array{hidden: string[], decoy: string[], css: string}
+ */
+function init_plugin_suite_content_protector_noise_profile( $content_id ) {
+	static $memo   = array();
+	static $window = null;
+
+	$content_id = (int) $content_id;
+	if ( isset( $memo[ $content_id ] ) ) {
+		return $memo[ $content_id ];
+	}
+
+	// Fixed once per request, so <head> CSS and content always agree even
+	// when a rotation boundary passes mid-request.
+	$rotation = init_plugin_suite_content_protector_noise_rotation();
+	if ( null === $window ) {
+		$window = $rotation > 0 ? (int) floor( time() / $rotation ) : -1;
+	}
+
+	$seed = $window >= 0
+		? hash_hmac( 'sha256', 'icp-noise|' . $content_id . '|' . $rotation . '|' . $window, wp_salt( 'secure_auth' ) )
+		: '';
+	$next = init_plugin_suite_content_protector_noise_rng( $seed );
+
+	$hidden_count = 14 + $next( 8 );
+	$decoy_count  = 8 + $next( 6 );
+	$wanted       = $hidden_count + $decoy_count;
+	$names        = array();
+	$found        = 0;
+
+	// Duplicates are skipped; the attempt cap only guards against a broken
+	// generator and is never reached in practice.
+	for ( $attempt = 0; $found < $wanted && $attempt < 500; $attempt++ ) {
+		$name = init_plugin_suite_content_protector_noise_class_name( $next );
+		if ( ! isset( $names[ $name ] ) ) {
+			$names[ $name ] = true;
+			++$found;
+		}
+	}
+
+	$names  = array_keys( $names );
+	$hidden = array_slice( $names, 0, $hidden_count );
+	$decoy  = array_slice( $names, $hidden_count );
+
+	$selector = static function ( $class_name ) use ( $next ) {
+		switch ( $next( 3 ) ) {
+			case 0:
+				return '[class~="' . $class_name . '"]';
+			case 1:
+				return '*.' . $class_name;
+			default:
+				return '.' . $class_name;
+		}
+	};
+
+	$hidden_rules = init_plugin_suite_content_protector_noise_rules(
+		init_plugin_suite_content_protector_noise_shuffle( array_map( $selector, $hidden ), $next ),
+		array( 'display:none!important', 'display:none !important' ),
+		$next
+	);
+
+	// Inherited properties re-set to inherit, and display:inline on an
+	// element that is inline already: no visible effect at all.
+	$decoy_rules = init_plugin_suite_content_protector_noise_rules(
+		init_plugin_suite_content_protector_noise_shuffle( array_map( $selector, $decoy ), $next ),
+		array( 'display:inline', 'color:inherit', 'font:inherit', 'visibility:inherit', 'display:inline;color:inherit', 'font-style:inherit;letter-spacing:inherit' ),
+		$next
+	);
+
+	$rules = init_plugin_suite_content_protector_noise_shuffle( array_merge( $hidden_rules, $decoy_rules ), $next );
+
+	$memo[ $content_id ] = array(
+		'hidden' => $hidden,
+		'decoy'  => $decoy,
+		'css'    => implode( '', $rules ),
+	);
+
+	return $memo[ $content_id ];
+}
+
+/**
+ * Make sure the noise CSS for a post is output exactly once.
+ *
+ * @since 1.10
+ *
+ * @param int $content_id Post ID.
+ * @return void
+ */
+function init_plugin_suite_content_protector_ensure_noise_css( $content_id ) {
+	static $printed = array();
+
+	$content_id = (int) $content_id;
+	if ( isset( $printed[ $content_id ] ) ) {
+		return;
+	}
+	$printed[ $content_id ] = true;
+
+	$profile = init_plugin_suite_content_protector_noise_profile( $content_id );
+
+	init_plugin_suite_content_protector_add_inline_css( 'init-content-protector-inline', $profile['css'] );
+}
+
+/**
+ * Hidden noise class names for the current post.
+ *
+ * @deprecated 1.10 Class names are generated per post. Use noise_profile().
  *
  * @return string[]
  */
 function init_plugin_suite_content_protector_noise_classes() {
-	return array( 'frag-shade-01', 'ghost-x7', 'scramble-v3', 'nullcore-beta', 'blurwave-92', 'hidezone-k1', 'phantom-lag', 'junklayer-zx', 'stealth-tick', 'flick-fade-r7', 'vapor-delta', 'cloak-mute-9', 'packet-fog', 'mute-husk-88', 'shadow-glitch', 'dust-null', 'junk-mark32', 'camoframe-z1', 'crackline-vx', 'bit-spike', 'noisepatch-t2', 'anti-read-burst', 'cloakdrop-v7', 'faint-node', 'echo-trick', 'shield-pulse-0x', 'blind-phase', 'loopbug-alpha', 'ghostline-17', 'mist-frag', 'invis-junk', 'flick-hint', 'dummy-ghost', 'silent-dust', 'hovermask-01', 'blurpoint-mix', 'phaseblock-zk', 'hollow-trail', 'node-husk', 'noise-crawl', 'masker-core', 'patchwave-93', 'hacknull-tt', 'mimic-mute-5x', 'hush-blip', 'filter-junked', 'glitchcore', 'softfade-v9', 'decoy-null', 'streamblock-q4', 'noshadow-55', 'divert-trap', 'slice-invert', 'scatter-vibe', 'whitefade', 'trapdust-fake', 'shadowbyte', 'offset-glow', 'noise-token', 'pixel-disrupt', 'crackloop', 'blocktrap-ghost', 'coreblur-beta', 'pulsar-drop', 'blindfade-mx', 'shimmer-null', 'lag-bug-21', 'trapzone-random', 'lineghost-v1', 'blurstream-fake', 'inert-code-99', 'distort-mimic', 'cloakping', 'jammer-lost', 'nodedust-18', 'fakeline-delta', 'buffblock-k2', 'trickpulse', 'fogmark-v0', 'scramble-loop', 'coverray-ghost', 'noise-phi-7', 'fragshade-l1', 'zapdust', 'anti-scan-33', 'bypass-hollow', 'tracer-dust', 'shade-void', 'invisible-xn', 'null-slice', 'offpoint-zz', 'glitch-tag', 'blurtrace-71', 'stealth-zap', 'dropfilter-f', 'dummy-dash-3', 'smokephase', 'mute-jammer', 'jam-dustbox', 'fakeslice-z' );
+	$profile = init_plugin_suite_content_protector_noise_profile( (int) get_the_ID() );
+
+	return $profile['hidden'];
 }
 
 /**
- * Draw the number of words to skip before the next noise insertion.
+ * Draw the number of words to skip before the next insertion.
  *
  * Inserting after each word independently with probability p is exactly
  * equivalent to skipping Geometric(p) words between insertions. Sampling the
@@ -646,13 +1059,71 @@ function init_plugin_suite_content_protector_noise_gap( $log_keep ) {
 }
 
 /**
- * Inject noise elements into the text runs of a token list (in place).
+ * Whether a text run may get visible decoy wrappers, judged by the tag
+ * right before it.
  *
- * @param array $tokens Token list from tokenize_html(), keyword spans already applied.
- * @param int   $rate   Insertion chance per word, in percent (1–50).
+ * Wrapping a word in a span is invisible in normal text flow, but inside a
+ * flex or grid container it would split one anonymous item into several and
+ * change the layout. So decoys only go where the parent is very likely a
+ * plain text block: right after an opening paragraph-like tag, after the end
+ * of an inline formatting tag, or after a line break. Links and generic
+ * spans/divs are skipped (often styled as flex buttons or badges).
+ *
+ * @since 1.10
+ *
+ * @param string $markup Previous markup token ('' at the start of content).
+ * @return bool
+ */
+function init_plugin_suite_content_protector_noise_decoy_context( $markup ) {
+	if ( '' === $markup || ! preg_match( '~^<(/?)([a-z][a-z0-9]*)~i', $markup, $match ) ) {
+		return false;
+	}
+
+	$tag = strtolower( $match[2] );
+
+	if ( '' === $match[1] ) {
+		return in_array( $tag, array( 'p', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'td', 'th', 'dd', 'dt', 'figcaption', 'strong', 'em', 'b', 'i', 'u', 's', 'mark', 'small', 'cite', 'q', 'abbr', 'sub', 'sup', 'del', 'ins', 'br', 'wbr' ), true );
+	}
+
+	return in_array( $tag, array( 'strong', 'em', 'b', 'i', 'u', 's', 'mark', 'small', 'cite', 'q', 'abbr', 'sub', 'sup', 'del', 'ins', 'code', 'kbd' ), true );
+}
+
+/**
+ * Pick one or two distinct class names, in random order.
+ *
+ * @since 1.10
+ *
+ * @param string   $first   First (required) class name.
+ * @param string[] $extra   Pool for the optional second class name.
+ * @param int      $percent Chance (0–100) of adding a second class name.
+ * @return string Escaped class attribute value.
+ */
+function init_plugin_suite_content_protector_noise_class_attr( $first, array $extra, $percent ) {
+	$classes = array( $first );
+
+	if ( ! empty( $extra ) && wp_rand( 1, 100 ) <= $percent ) {
+		$second = $extra[ array_rand( $extra ) ];
+		if ( $second !== $first ) {
+			$classes[] = $second;
+			if ( wp_rand( 0, 1 ) ) {
+				$classes = array_reverse( $classes );
+			}
+		}
+	}
+
+	return esc_attr( implode( ' ', $classes ) );
+}
+
+/**
+ * Inject noise elements and visible decoys into the text runs of a token
+ * list (in place).
+ *
+ * @param array $tokens     Token list from tokenize_html(), keyword spans already applied.
+ * @param int   $rate       Insertion chance per word, in percent (1–50).
+ * @param int   $content_id Optional. Post ID the class names belong to (1.10).
  * @return void
  */
-function init_plugin_suite_content_protector_apply_noise_to_tokens( array &$tokens, $rate ) {
+function init_plugin_suite_content_protector_apply_noise_to_tokens( array &$tokens, $rate, $content_id = 0 ) {
 	// Word pool for noise text, built from reader-facing text only.
 	$pool = array();
 	foreach ( $tokens as $token ) {
@@ -667,13 +1138,23 @@ function init_plugin_suite_content_protector_apply_noise_to_tokens( array &$toke
 		return;
 	}
 
-	$classes  = init_plugin_suite_content_protector_noise_classes();
-	$tags     = array( 'span', 'del', 'ins', 'small', 'i', 'b', 'em', 'strong', 'mark' );
-	$log_keep = log( 1 - ( max( 1, min( 50, (int) $rate ) ) / 100 ) );
-	$skip     = init_plugin_suite_content_protector_noise_gap( $log_keep );
+	$profile = init_plugin_suite_content_protector_noise_profile( $content_id );
+	$hidden  = $profile['hidden'];
+	$decoy   = $profile['decoy'];
+
+	// "span" is weighted up because decoys are spans too.
+	$tags = array( 'span', 'span', 'span', 'span', 'del', 'ins', 'small', 'i', 'b', 'em', 'strong', 'mark', 's', 'u', 'cite' );
+
+	$rate           = max( 1, min( 50, (int) $rate ) );
+	$log_keep       = log( 1 - ( $rate / 100 ) );
+	$decoy_log_keep = log( 1 - ( $rate * 0.6 / 100 ) );
+	$skip           = init_plugin_suite_content_protector_noise_gap( $log_keep );
+	$decoy_skip     = init_plugin_suite_content_protector_noise_gap( $decoy_log_keep );
+	$previous       = '';
 
 	foreach ( $tokens as $index => $token ) {
 		if ( ! $token[0] ) {
+			$previous = $token[1];
 			continue;
 		}
 
@@ -682,12 +1163,23 @@ function init_plugin_suite_content_protector_apply_noise_to_tokens( array &$toke
 			continue;
 		}
 
+		$decoys_here = ! empty( $decoy ) && init_plugin_suite_content_protector_noise_decoy_context( $previous );
+
 		$out = '';
 		foreach ( $words as $word ) {
-			$out .= $word;
-
 			if ( '' === $word || '' === trim( $word ) ) {
+				$out .= $word;
 				continue;
+			}
+
+			if ( $decoys_here && 0 === $decoy_skip ) {
+				$out       .= '<span class="' . init_plugin_suite_content_protector_noise_class_attr( $decoy[ array_rand( $decoy ) ], $decoy, 30 ) . '">' . $word . '</span>';
+				$decoy_skip = init_plugin_suite_content_protector_noise_gap( $decoy_log_keep );
+			} else {
+				if ( $decoys_here ) {
+					--$decoy_skip;
+				}
+				$out .= $word;
 			}
 
 			if ( $skip > 0 ) {
@@ -696,7 +1188,7 @@ function init_plugin_suite_content_protector_apply_noise_to_tokens( array &$toke
 			}
 
 			$tag  = $tags[ array_rand( $tags ) ];
-			$out .= '<' . $tag . ' class="' . esc_attr( $classes[ array_rand( $classes ) ] ) . '" aria-hidden="true">'
+			$out .= '<' . $tag . ' class="' . init_plugin_suite_content_protector_noise_class_attr( $hidden[ array_rand( $hidden ) ], $decoy, 50 ) . '">'
 				. esc_html( $pool[ array_rand( $pool ) ] )
 				. '</' . $tag . '>';
 			$skip = init_plugin_suite_content_protector_noise_gap( $log_keep );
@@ -775,7 +1267,10 @@ function init_plugin_suite_content_protector_transform_text( $content, $content_
 	}
 
 	if ( $noise ) {
-		init_plugin_suite_content_protector_apply_noise_to_tokens( $tokens, (int) $settings['noise_rate'] );
+		// The hiding rules are generated per post, so the page must carry
+		// them. Printed in <head> when possible, otherwise in the footer.
+		init_plugin_suite_content_protector_ensure_noise_css( $content_id );
+		init_plugin_suite_content_protector_apply_noise_to_tokens( $tokens, (int) $settings['noise_rate'], $content_id );
 	}
 
 	$output = '';

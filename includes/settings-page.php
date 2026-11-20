@@ -110,6 +110,9 @@ add_action( 'admin_enqueue_scripts', 'init_plugin_suite_content_protector_admin_
  * @return array
  */
 function init_plugin_suite_content_protector_sanitize_settings( $input ) {
+	// options.php has already run wp_unslash() on the submitted values, so
+	// they are not unslashed again here (1.9 did, which stripped backslashes
+	// from the encryption key, keywords and content selector).
 	$input    = is_array( $input ) ? $input : array();
 	$defaults = init_plugin_suite_content_protector_default_settings();
 	$output   = array();
@@ -119,20 +122,22 @@ function init_plugin_suite_content_protector_sanitize_settings( $input ) {
 	};
 
 	$output['post_types']              = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['post_types'] ?? array() ) ) ) );
+	$output['protection_scope']        = 'selected' === ( $input['protection_scope'] ?? 'all' ) ? 'selected' : 'all';
 	$output['content_mode']            = in_array( $input['content_mode'] ?? 'none', array( 'none', 'encrypt' ), true ) ? ( $input['content_mode'] ?? 'none' ) : 'none';
-	$output['encrypt_key']             = isset( $input['encrypt_key'] ) ? sanitize_text_field( wp_unslash( $input['encrypt_key'] ) ) : '';
+	$output['encrypt_key']             = isset( $input['encrypt_key'] ) ? sanitize_text_field( (string) $input['encrypt_key'] ) : '';
 	$output['encrypt_delivery']        = in_array( $input['encrypt_delivery'] ?? 'inline', array( 'inline', 'rest' ), true ) ? ( $input['encrypt_delivery'] ?? 'inline' ) : 'inline';
 	$output['headless_detect']         = $checkbox( 'headless_detect' );
 	$output['headless_allow_crawlers'] = $checkbox( 'headless_allow_crawlers' );
 	$ip_source                         = isset( $input['client_ip_source'] ) && is_string( $input['client_ip_source'] ) ? $input['client_ip_source'] : '';
 	$output['client_ip_source']        = isset( init_plugin_suite_content_protector_client_ip_sources()[ $ip_source ] ) ? $ip_source : $defaults['client_ip_source'];
-	$output['content_selector']        = isset( $input['content_selector'] ) ? sanitize_text_field( wp_unslash( $input['content_selector'] ) ) : '';
+	$output['content_selector']        = isset( $input['content_selector'] ) ? sanitize_text_field( (string) $input['content_selector'] ) : '';
+	$output['skeleton_scheme']         = in_array( $input['skeleton_scheme'] ?? 'light', array( 'light', 'dark', 'auto' ), true ) ? $input['skeleton_scheme'] : 'light';
 	$output['js_protect']              = $checkbox( 'js_protect' );
 	$output['disable_devtool']         = $checkbox( 'disable_devtool' );
 	$output['antisnap']                = $checkbox( 'antisnap' );
 	$output['inject_noise']            = $checkbox( 'inject_noise' );
 	$output['noise_rate']              = isset( $input['noise_rate'] ) ? max( 1, min( 50, (int) $input['noise_rate'] ) ) : $defaults['noise_rate'];
-	$output['keywords']                = isset( $input['keywords'] ) ? sanitize_text_field( wp_unslash( $input['keywords'] ) ) : '';
+	$output['keywords']                = isset( $input['keywords'] ) ? sanitize_text_field( (string) $input['keywords'] ) : '';
 	$output['excluded_roles']          = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['excluded_roles'] ?? array() ) ) ) );
 
 	if ( '' === $output['content_selector'] ) {
@@ -155,6 +160,7 @@ function init_plugin_suite_content_protector_render_settings_page() {
 	$option              = init_plugin_suite_content_protector_get_settings();
 	$name                = INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION;
 	$content_mode        = $option['content_mode'];
+	$protection_scope    = $option['protection_scope'];
 	$selected_post_types = $option['post_types'];
 	$selected_roles      = $option['excluded_roles'];
 
@@ -189,6 +195,27 @@ function init_plugin_suite_content_protector_render_settings_page() {
 				</tr>
 
 				<tr>
+					<th scope="row"><?php esc_html_e( 'Protection Scope', 'init-content-protector' ); ?></th>
+					<td>
+						<fieldset>
+							<label>
+								<input type="radio" name="<?php echo esc_attr( $name ); ?>[protection_scope]" value="all" <?php checked( $protection_scope, 'all' ); ?> />
+								<?php esc_html_e( 'All posts of the selected post types (default)', 'init-content-protector' ); ?>
+							</label><br>
+							<label>
+								<input type="radio" name="<?php echo esc_attr( $name ); ?>[protection_scope]" value="selected" <?php checked( $protection_scope, 'selected' ); ?> />
+								<?php esc_html_e( 'Only posts where protection is turned on', 'init-content-protector' ); ?>
+							</label>
+						</fieldset>
+						<p class="description">
+							<?php esc_html_e( 'With "Only posts where protection is turned on", nothing is protected until you tick "Protect this post" in the Content Protection box of the post editor, or use the "Turn content protection on" bulk action on the post list. Only the post types selected above get that box.', 'init-content-protector' ); ?>
+							<br>
+							<?php esc_html_e( 'In this mode JavaScript Content Protection, Advanced DevTools Blocking and Anti-Screenshot Protection also only load on protected posts, instead of on every page of the site.', 'init-content-protector' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
 					<th scope="row"><?php esc_html_e( 'Content Protection Mode', 'init-content-protector' ); ?></th>
 					<td>
 						<fieldset>
@@ -205,6 +232,29 @@ function init_plugin_suite_content_protector_render_settings_page() {
 							<?php esc_html_e( 'Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access.', 'init-content-protector' ); ?>
 							<br>
 							<?php esc_html_e( 'Decryption uses the browser\'s built-in Web Crypto API. The bundled CryptoJS fallback (about 60 KB) is only loaded on sites not served over HTTPS, or on demand in the rare browser without Web Crypto support.', 'init-content-protector' ); ?>
+						</p>
+					</td>
+				</tr>
+
+				<tr>
+					<th scope="row"><label for="skeleton_scheme"><?php esc_html_e( 'Loading Skeleton Color Scheme', 'init-content-protector' ); ?></label></th>
+					<td>
+						<select name="<?php echo esc_attr( $name ); ?>[skeleton_scheme]" id="skeleton_scheme">
+							<option value="light" <?php selected( $option['skeleton_scheme'], 'light' ); ?>><?php esc_html_e( 'Light (default)', 'init-content-protector' ); ?></option>
+							<option value="dark" <?php selected( $option['skeleton_scheme'], 'dark' ); ?>><?php esc_html_e( 'Dark', 'init-content-protector' ); ?></option>
+							<option value="auto" <?php selected( $option['skeleton_scheme'], 'auto' ); ?>><?php esc_html_e( 'Automatic (follow the visitor\'s system setting)', 'init-content-protector' ); ?></option>
+						</select>
+						<p class="description">
+							<?php esc_html_e( 'Colors of the loading skeleton and the "enable JavaScript" notice shown in Encrypt mode until the content is decrypted. Choose Dark for a dark theme. Automatic only fits themes that themselves follow the visitor\'s system light/dark setting.', 'init-content-protector' ); ?>
+							<br>
+							<?php
+							printf(
+								/* translators: 1: CSS custom property wrapped in <code>, 2: PHP filter name wrapped in <code> */
+								esc_html__( 'Themes with their own dark mode switch can set CSS custom properties such as %1$s on .icp-protected, or use the %2$s filter. See the plugin FAQ.', 'init-content-protector' ),
+								'<code>--icp-skeleton-bg</code>',
+								'<code>init_plugin_suite_content_protector_skeleton_scheme</code>'
+							);
+							?>
 						</p>
 					</td>
 				</tr>
@@ -388,7 +438,9 @@ function init_plugin_suite_content_protector_render_settings_page() {
 							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[inject_noise]" id="inject_noise" value="1" <?php checked( $option['inject_noise'], '1' ); ?>>
 							<?php esc_html_e( 'Insert invisible junk spans randomly to confuse crawlers.', 'init-content-protector' ); ?>
 						</label>
-						<p class="description"><?php esc_html_e( 'Invisible to real readers. Junk spans use display: none.', 'init-content-protector' ); ?></p>
+						<p class="description">
+							<?php esc_html_e( 'Invisible to real readers. Class names are generated for each post and change every day, and the rules that hide them are printed in the page itself, so scrapers cannot strip the noise with a fixed list. Some real words are also wrapped in look-alike elements, so removing every unknown element removes real text too.', 'init-content-protector' ); ?>
+						</p>
 					</td>
 				</tr>
 

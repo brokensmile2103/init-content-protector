@@ -16,8 +16,10 @@
  *   / App Engine addresses that anyone can rent.
  * - Only positive results are stored in the database (one short-lived
  *   transient per verified crawler IP, a small and bounded set). Negative
- *   results live in the object cache only, so bots sending a fake User-Agent
- *   from thousands of IPs cannot bloat wp_options.
+ *   results go to the object cache. Without a persistent object cache they
+ *   are kept in one single, size-capped transient (1.10), so a bot sending a
+ *   fake crawler User-Agent cannot make the server repeat slow DNS lookups
+ *   on every request, nor bloat wp_options from thousands of IPs.
  *
  * @package Init_Content_Protector
  */
@@ -167,8 +169,15 @@ function init_plugin_suite_content_protector_ip_in_cidr( $ip, $cidr ) {
 		return false;
 	}
 
+	// Validate before inet_pton(), which emits a warning on bad input (a
+	// typo in a range added through the filter would otherwise print PHP
+	// warnings on every request).
+	if ( false === filter_var( $parts[0], FILTER_VALIDATE_IP ) || false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+		return false;
+	}
+
 	$subnet = inet_pton( $parts[0] );
-	$addr   = false !== filter_var( $ip, FILTER_VALIDATE_IP ) ? inet_pton( $ip ) : false;
+	$addr   = inet_pton( $ip );
 	if ( false === $subnet || false === $addr || strlen( $subnet ) !== strlen( $addr ) ) {
 		return false;
 	}
@@ -429,6 +438,54 @@ function init_plugin_suite_content_protector_crawler_dns_check( $ip, array $suff
 }
 
 /**
+ * Read or record a failed crawler verification when there is no persistent
+ * object cache.
+ *
+ * All failures share one transient holding at most 500 entries (oldest
+ * dropped first, each kept 10 minutes), so the database cost is one row no
+ * matter how many IP addresses send a fake crawler User-Agent. Concurrent
+ * writes may lose an entry, which only means one more DNS lookup.
+ *
+ * @since 1.10
+ *
+ * @param string $key    Cache key of the IP + crawler pair.
+ * @param bool   $record Optional. Record a failure instead of reading. Default false.
+ * @return bool Whether a recent failure is on record (always true when recording).
+ */
+function init_plugin_suite_content_protector_crawler_negative( $key, $record = false ) {
+	if ( wp_using_ext_object_cache() ) {
+		// The object cache already holds negative results.
+		return $record;
+	}
+
+	$transient = 'icp_bot_negative';
+	$now       = time();
+	$list      = get_transient( $transient );
+	$list      = is_array( $list ) ? $list : array();
+
+	if ( ! $record ) {
+		return isset( $list[ $key ] ) && (int) $list[ $key ] > $now;
+	}
+
+	foreach ( $list as $entry => $expires ) {
+		if ( (int) $expires <= $now ) {
+			unset( $list[ $entry ] );
+		}
+	}
+
+	unset( $list[ $key ] );
+	$list[ $key ] = $now + 10 * MINUTE_IN_SECONDS;
+
+	if ( count( $list ) > 500 ) {
+		$list = array_slice( $list, -500, null, true );
+	}
+
+	set_transient( $transient, $list, 10 * MINUTE_IN_SECONDS );
+
+	return true;
+}
+
+/**
  * Whether the current request comes from a verified search engine crawler.
  *
  * @param string|null $ip IP address. Defaults to the visitor's.
@@ -455,6 +512,9 @@ function init_plugin_suite_content_protector_verified_crawler( $ip = null, $ua =
 	}
 
 	$cached = wp_cache_get( $key, 'init_content_protector' );
+	if ( false === $cached && init_plugin_suite_content_protector_crawler_negative( $key ) ) {
+		$cached = 'no';
+	}
 	if ( false === $cached ) {
 		$cached = get_transient( $key );
 	}
@@ -464,10 +524,12 @@ function init_plugin_suite_content_protector_verified_crawler( $ip = null, $ua =
 		$verified = init_plugin_suite_content_protector_crawler_dns_check( $ip, (array) ( $crawlers[ $bot ]['hosts'] ?? array() ) );
 		$cached   = $verified ? 'yes' : 'no';
 
-		// Negative results only in the object cache (see file header).
+		// Negative results never get a transient of their own (see file header).
 		wp_cache_set( $key, $cached, 'init_content_protector', $verified ? DAY_IN_SECONDS : 10 * MINUTE_IN_SECONDS );
 		if ( $verified ) {
 			set_transient( $key, $cached, DAY_IN_SECONDS );
+		} else {
+			init_plugin_suite_content_protector_crawler_negative( $key, true );
 		}
 	}
 
