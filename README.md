@@ -4,7 +4,7 @@
 
 **No bloat. Just clean protection. Built for themes and developers.**
 
-[![Version](https://img.shields.io/badge/stable-v1.9-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
+[![Version](https://img.shields.io/badge/stable-v1.10-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
@@ -32,16 +32,22 @@ Use this plugin to harden your site's content visibility while maintaining a smo
   - Encrypted fresh on every request (about 0.3 ms thanks to a memoized key) — no database cache, so members-only or per-user content is never served to the wrong visitor
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
   - **Headless Browser Detection** *(optional)* — withholds decryption from sessions that look like Puppeteer, Playwright, or Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor
+  - **Verified search engine crawlers** (Google, Bing, Apple, Yandex, Baidu) still get the content — confirmed by forward-confirmed reverse DNS, never by User-Agent alone
+  - **Visitor IP Detection** for sites behind Cloudflare or another proxy, spoof-safe in Automatic mode
+  - Loading skeleton with **Light / Dark / Automatic** color schemes, fully restylable with CSS custom properties
 - **Keyword cloaking** using CSS pseudo-elements — whole words only, Unicode aware, never inside HTML attributes or code blocks
 - **Invisible noise injection** to confuse crawlers
+  - Class names generated per post and rotated daily, hidden by inline CSS in the page itself, mixed with visible look-alike decoys — no fixed list a scraper can strip
   - Only ever injected into plain text — never inside HTML tags, and never inside `<script>`, `<style>`, `<pre>`, `<textarea>`, `<code>`, `<select>`, `<option>`, `<title>`, or `<svg>`
   - Configurable injection rate (1–50%, default 7%)
 - **AMP-aware** — automatically skips protection on AMP endpoints instead of producing invalid markup
-- **Per-post-type configuration** and **Global Exceptions** — exclude selected user roles from every protection feature at once (content mode, JS protection, DevTools blocking, anti-screenshot, headless detection, noise, keywords)
+- **Protection Scope** — protect every post of the selected post types, or only the posts you switch on (editor box, bulk actions, lock column on the post list)
+- **Global Exceptions** — exclude selected user roles from every protection feature at once (content mode, JS protection, DevTools blocking, anti-screenshot, headless detection, noise, keywords)
+- **SEO-friendly excerpts** — automatic excerpts and SEO meta descriptions keep the real text
 - **Custom encryption key** per site
 - **Custom content selector**, with an **Auto-detect** button in settings that tests common theme/builder selectors against your latest post
 - Vanilla JS + REST API architecture — no jQuery, no external dependencies beyond an optional CryptoJS fallback
-- Assets load only where needed — noise CSS and decryption scripts only on protected single views
+- Assets load only where needed — decryption scripts and skeleton CSS only on protected single views
 
 ## Installation
 
@@ -51,12 +57,29 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 
 ## For Developers
 
-**Filters**
+**Filters** (all prefixed with `init_plugin_suite_content_protector_`)
 
-- `init_plugin_suite_content_protector_load_cryptojs` — `bool`, whether to preload CryptoJS. Default: `! is_ssl()`
-- `init_plugin_suite_content_protector_decrypt_delay` — `int`, milliseconds to wait before rendering decrypted content. Default: `1000`
+- `load_cryptojs` — `bool`, whether to preload CryptoJS. Default: `! is_ssl()`
+- `decrypt_delay` — `int`, milliseconds to wait before rendering decrypted content. Default: `1000`
+- `is_protected_post` — `bool`, decide per post whether it is protected
+- `skeleton_scheme` — `'light'`, `'dark'` or `'auto'` for the loading skeleton
+- `noise_rotation` — `int`, seconds the generated noise class names stay the same. Default: one day, `0` = every request
+- `skip_secondary_content` — `bool`, leave excerpt / `<head>` calls of `the_content` unprotected. Default: `true` there
+- `verified_crawlers`, `is_verified_crawler`, `pre_crawler_dns_check` — customize crawler verification
+- `client_ip`, `cloudflare_ranges` — customize visitor IP detection
 
-**JavaScript events** (dispatched on `window`)
+**Skeleton styling** — set CSS custom properties on the wrapper; your rules always win over the built-in schemes:
+
+```css
+html.dark .icp-protected {
+    --icp-skeleton-bg: #2b2f36;
+    --icp-skeleton-shine: rgba(255, 255, 255, 0.06);
+}
+```
+
+Also available: `--icp-skeleton-radius`, `--icp-skeleton-height`, `--icp-skeleton-gap`, `--icp-noscript-bg`, `--icp-noscript-border`, `--icp-noscript-color`.
+
+**JavaScript events** (dispatched on the rendered content and bubble up to `document` and `window`)
 
 - `init-content-decrypted` — fired for each protected block once decrypted; `event.detail.element` is the rendered content
 - `init-content-payload-ready` — kept for backward compatibility
