@@ -1,10 +1,10 @@
 # Init Content Protector – Anti-Copy, Anti-Scrape, Encrypt-All
 
-> Protect your content from copying, scraping, and inspection using JS blocking, keyword cloaking, noise injection, and optional full encryption.
+> Protect your content from copying, scraping, and inspection using JS blocking, keyword cloaking, noise injection, and optional full encryption or lazy loading.
 
 **No bloat. Just clean protection. Built for themes and developers.**
 
-[![Version](https://img.shields.io/badge/stable-v1.10-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
+[![Version](https://img.shields.io/badge/stable-v1.11-blue.svg)](https://wordpress.org/plugins/init-content-protector/)
 [![License](https://img.shields.io/badge/license-GPLv2-blue.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 ![Made with ❤️ in HCMC](https://img.shields.io/badge/Made%20with-%E2%9D%A4%EF%B8%8F%20in%20HCMC-blue)
 
@@ -25,6 +25,7 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 - **Anti-Screenshot Protection** *(optional)* — powered by **Init AntiSnap 6.0**, vendored as full, human-readable source. Recognizes the evenly spaced, step-by-step scrolling of scroll-and-stitch capture tools and DevTools full-size captures, and briefly blurs the page with a warning
   - Does not react to find-in-page, anchor links, scrollbar dragging, scroll restoration, zooming, or pop-ups that lock page scrolling
   - Small JS API for sites that scroll the page by themselves: `InitAntiSnap.trust(ms)`, `pause()`, `resume()`, `isDefending()`, `destroy()`
+- **Lazy Load mode** — the page ships without the article; it is fetched over REST after a short browser verification (signed token, minimum wait), with a **Retry** button if verification fails
 - **Full content encryption** (AES-256) with client-side decryption via the browser's built-in **Web Crypto API**
   - CryptoJS is only loaded on sites not served over HTTPS, or on demand as a fallback — no extra 60 KB download for everyone else
   - **Inline delivery** (default): simple, works everywhere
@@ -40,12 +41,14 @@ Use this plugin to harden your site's content visibility while maintaining a smo
   - Class names generated per post and rotated daily, hidden by inline CSS in the page itself, mixed with visible look-alike decoys — no fixed list a scraper can strip
   - Only ever injected into plain text — never inside HTML tags, and never inside `<script>`, `<style>`, `<pre>`, `<textarea>`, `<code>`, `<select>`, `<option>`, `<title>`, or `<svg>`
   - Configurable injection rate (1–50%, default 7%)
+- **REST API and feed protection** — with Encrypt or Lazy Load on, REST endpoints, RSS/Atom feeds (content and excerpt) and full-content listings return a short message instead of protected posts
 - **AMP-aware** — automatically skips protection on AMP endpoints instead of producing invalid markup
 - **Protection Scope** — protect every post of the selected post types, or only the posts you switch on (editor box, bulk actions, lock column on the post list)
 - **Global Exceptions** — exclude selected user roles from every protection feature at once (content mode, JS protection, DevTools blocking, anti-screenshot, headless detection, noise, keywords)
-- **SEO-friendly excerpts** — automatic excerpts and SEO meta descriptions keep the real text
+- **SEO-friendly excerpts** — automatic excerpts and SEO meta descriptions keep the real text (feeds excepted)
 - **Custom encryption key** per site
 - **Custom content selector**, with an **Auto-detect** button in settings that tests common theme/builder selectors against your latest post
+- Reusable verification module: `includes/verify.php` and `window.InitContentVerify`, stateless and cache-friendly
 - Vanilla JS + REST API architecture — no jQuery, no external dependencies beyond an optional CryptoJS fallback
 - Assets load only where needed — decryption scripts and skeleton CSS only on protected single views
 
@@ -67,6 +70,8 @@ Use this plugin to harden your site's content visibility while maintaining a smo
 - `skip_secondary_content` — `bool`, leave excerpt / `<head>` calls of `the_content` unprotected. Default: `true` there
 - `verified_crawlers`, `is_verified_crawler`, `pre_crawler_dns_check` — customize crawler verification
 - `client_ip`, `cloudflare_ranges` — customize visitor IP detection
+- `rest_hide_content`, `rest_content_message` — let a REST/feed request through, or change the replacement message
+- `verify_min_age`, `verify_ttl` — seconds a verification token must wait (default `1`) and stays valid (default `300`)
 
 **Skeleton styling** — set CSS custom properties on the wrapper; your rules always win over the built-in schemes:
 
@@ -81,7 +86,7 @@ Also available: `--icp-skeleton-radius`, `--icp-skeleton-height`, `--icp-skeleto
 
 **JavaScript events** (dispatched on the rendered content and bubble up to `document` and `window`)
 
-- `init-content-decrypted` — fired for each protected block once decrypted; `event.detail.element` is the rendered content
+- `init-content-decrypted` — fired for each protected block once its content is in place; `event.detail.element` is the rendered content, `event.detail.mode` is `'encrypt'` or `'lazy'`
 - `init-content-payload-ready` — kept for backward compatibility
 
 **Init AntiSnap config** — set `window.InitAntiSnapConfig` before the script runs; values you set take precedence over the plugin's defaults:
