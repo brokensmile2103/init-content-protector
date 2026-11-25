@@ -129,6 +129,31 @@ function init_plugin_suite_content_protector_is_encrypt_mode( $settings ) {
 }
 
 /**
+ * Whether Lazy Load mode is active.
+ *
+ * @since 1.11
+ *
+ * @param array $settings Settings array.
+ * @return bool
+ */
+function init_plugin_suite_content_protector_is_lazy_mode( $settings ) {
+	return isset( $settings['content_mode'] ) && 'lazy' === $settings['content_mode'];
+}
+
+/**
+ * Whether the content is withheld from the HTML until the browser has been
+ * verified (Encrypt or Lazy Load mode).
+ *
+ * @since 1.11
+ *
+ * @param array $settings Settings array.
+ * @return bool
+ */
+function init_plugin_suite_content_protector_is_gated_mode( $settings ) {
+	return init_plugin_suite_content_protector_is_encrypt_mode( $settings ) || init_plugin_suite_content_protector_is_lazy_mode( $settings );
+}
+
+/**
  * Get the active encryption passphrase.
  *
  * @param array|null $settings Optional settings array.
@@ -672,12 +697,17 @@ function init_plugin_suite_content_protector_add_inline_css( $handle, $css ) {
 /**
  * Output keyword-reconstruction CSS for the queried post, in <head>.
  *
+ * Not used in Lazy Load mode (1.11): there the CSS travels with the content.
+ *
  * @return void
  */
 function init_plugin_suite_content_protector_enqueue_styles() {
 	$settings = init_plugin_suite_content_protector_get_settings();
 
-	if ( init_plugin_suite_content_protector_should_skip_frontend( $settings ) ) {
+	// Lazy Load mode ships the keyword CSS together with the content.
+	if ( init_plugin_suite_content_protector_should_skip_frontend( $settings )
+		|| init_plugin_suite_content_protector_is_lazy_mode( $settings )
+	) {
 		return;
 	}
 

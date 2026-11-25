@@ -1,10 +1,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Content Protector 1.10\n"
+"Project-Id-Version: Init Content Protector 1.11\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-27\n"
-"PO-Revision-Date: 2026-11-20T02:50:00+07:00\n"
+"PO-Revision-Date: 2026-11-25T10:55:00+07:00\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: vi\n"
@@ -25,13 +25,15 @@ msgstr "Cài đặt"
 #. Description of the plugin
 #: init-content-protector.php
 msgid ""
-"A lightweight plugin to protect your post content from copy, scraping, and "
-"inspection. Features include copy protection, keyword cloaking, noise "
-"injection, and full content encryption."
+"A lightweight plugin to protect your post content from copy, scraping, "
+"and inspection. Features include copy protection, keyword cloaking, noise "
+"injection, full content encryption, and lazy loading after browser "
+"verification."
 msgstr ""
-"Một plugin nhẹ giúp bảo vệ nội dung bài viết của bạn khỏi bị sao chép, quét "
-"dữ liệu và kiểm tra. Các tính năng bao gồm bảo vệ sao chép, ẩn từ khóa, chèn"
-" nhiễu và mã hóa toàn bộ nội dung."
+"Một plugin nhẹ giúp bảo vệ nội dung bài viết của bạn khỏi bị sao chép, "
+"quét dữ liệu và kiểm tra. Các tính năng bao gồm bảo vệ sao chép, ẩn từ "
+"khóa, chèn nhiễu, mã hóa toàn bộ nội dung và tải trễ sau khi xác thực "
+"trình duyệt."
 
 #: includes/settings-page.php:17 includes/settings-page.php:175
 msgid "Init Content Protector Settings"
@@ -54,12 +56,33 @@ msgid "Encrypt Content (decode via JS)"
 msgstr "Mã hóa nội dung (giải mã bằng JavaScript)"
 
 #: includes/settings-page.php:232
+msgid "Lazy Load (hidden until the browser is verified)"
+msgstr "Tải trễ (ẩn cho đến khi trình duyệt được xác thực)"
+
+#: includes/settings-page.php:232
 msgid ""
 "Encrypting the content helps prevent crawlers from reading raw HTML. Do not "
 "enable if you need SEO access."
 msgstr ""
 "Việc mã hóa nội dung giúp ngăn crawler đọc HTML gốc. Không nên bật nếu bạn "
 "cần SEO truy cập vào nội dung."
+
+#: includes/settings-page.php:236
+msgid ""
+"Lazy Load is the lighter option: the page is sent without the article, "
+"and a script fetches it through the REST API once the visitor's browser "
+"has been verified. Nothing is encrypted, no decryption key is involved, "
+"and if the check fails the visitor gets a Retry button. It stops plain "
+"wget/curl scrapers and HTML-only crawlers, and the page stays cache "
+"friendly. Scripts inside the article are not executed, as in Encrypt mode."
+msgstr ""
+"Tải trễ là lựa chọn nhẹ hơn: trang được gửi đi không kèm bài viết, và một "
+"đoạn script sẽ lấy nội dung qua REST API sau khi trình duyệt của khách đã "
+"được xác thực. Không có gì bị mã hóa, không dùng khóa giải mã, và nếu "
+"bước kiểm tra thất bại thì khách sẽ thấy nút Thử lại. Cách này chặn được "
+"các công cụ quét wget/curl thuần và các trình thu thập chỉ đọc HTML, đồng "
+"thời trang vẫn thân thiện với bộ nhớ đệm. Script bên trong bài viết không "
+"được thực thi, giống chế độ Mã hóa."
 
 #: includes/settings-page.php:381
 msgid "Enable JavaScript Content Protection"
@@ -340,23 +363,25 @@ msgstr "Bật Phát hiện Trình duyệt Tự động (Headless)"
 
 #: includes/settings-page.php:296
 msgid ""
-"Withhold decryption from sessions that look like an automated browser "
+"Withhold the content from sessions that look like an automated browser "
 "(Puppeteer, Playwright, Selenium)."
 msgstr ""
-"Không giải mã nội dung cho các phiên trông giống trình duyệt tự động "
+"Không hiển thị nội dung cho các phiên trông giống trình duyệt tự động "
 "(Puppeteer, Playwright, Selenium)."
 
 #: includes/settings-page.php:299
 msgid ""
-"Only takes effect when Content Protection Mode is set to Encrypt — it has no"
-" effect in \"No Protection\" mode, since there is no decryption step left to"
-" withhold. Scores several client-side automation signals together, so no "
-"single false-positive flag can block a real visitor on its own."
+"Only takes effect when Content Protection Mode is set to Encrypt or Lazy "
+"Load — it has no effect in \"No Protection\" mode, since there is no "
+"decryption or loading step left to withhold. Scores several client-side "
+"automation signals together, so no single false-positive flag can block a "
+"real visitor on its own."
 msgstr ""
-"Chỉ có tác dụng khi Chế độ Bảo vệ Nội dung đang ở Mã hóa — không có tác dụng"
-" ở chế độ \"Không bảo vệ\" vì lúc đó không còn bước giải mã nào để giữ lại. "
-"Kết hợp nhiều tín hiệu tự động hóa phía client cùng lúc, nên một tín hiệu "
-"báo nhầm đơn lẻ không thể tự chặn nhầm người dùng thật."
+"Chỉ có tác dụng khi Chế độ Bảo vệ Nội dung đang ở Mã hóa hoặc Tải trễ — "
+"không có tác dụng ở chế độ \"Không bảo vệ\" vì lúc đó không còn bước giải "
+"mã hay tải nào để giữ lại. Kết hợp nhiều tín hiệu tự động hóa phía client "
+"cùng lúc, nên một tín hiệu báo nhầm đơn lẻ không thể tự chặn nhầm người "
+"dùng thật."
 
 #: includes/settings-page.php:301
 msgid ""
@@ -709,3 +734,56 @@ msgid ""
 msgstr ""
 "Giao diện có nút chuyển chế độ tối riêng có thể đặt các biến CSS như %1$s "
 "trên .icp-protected, hoặc dùng filter %2$s. Xem phần FAQ của plugin."
+
+#: init-content-protector.php:187
+msgid "The content could not be loaded."
+msgstr "Không thể tải nội dung."
+
+#: init-content-protector.php:188
+msgid "Your browser could not be verified, so the content is not shown."
+msgstr ""
+"Không thể xác thực trình duyệt của bạn nên nội dung không được hiển thị."
+
+#: init-content-protector.php:189
+msgid "This content is no longer available. Please reload the page."
+msgstr "Nội dung này không còn khả dụng. Vui lòng tải lại trang."
+
+#: init-content-protector.php:190
+msgid "Retry"
+msgstr "Thử lại"
+
+#: includes/verify.php:131
+msgid "Please try again in a moment."
+msgstr "Vui lòng thử lại sau giây lát."
+
+#: includes/rest-api.php:207
+msgid "This content is protected and is not available through the REST API."
+msgstr "Nội dung này được bảo vệ và không khả dụng qua REST API."
+
+#: includes/settings-page.php:244
+msgid "Warning:"
+msgstr "Cảnh báo:"
+
+#: includes/settings-page.php:245
+msgid ""
+"With Encrypt Content or Lazy Load on, the content of protected posts is "
+"also withheld from the other places that would hand it out: every "
+"WordPress REST API endpoint that renders post content (/wp-json/wp/v2/…, "
+"including pages, custom post types and revisions) and the RSS/Atom feeds. "
+"The content, and any automatic excerpt, is replaced by a short message "
+"there. Mobile apps, headless front ends, feed readers and plugins that "
+"read the article that way will receive that message instead. Users who "
+"can edit the post and the excluded roles still get the real content."
+msgstr ""
+"Khi bật Mã hóa nội dung hoặc Tải trễ, nội dung của các bài viết được bảo "
+"vệ cũng bị giữ lại khỏi những nơi khác có thể làm lộ nó: mọi endpoint "
+"REST API của WordPress render nội dung bài viết (/wp-json/wp/v2/…, gồm cả "
+"trang, custom post type và bản sửa đổi) và các feed RSS/Atom. Tại đó, nội "
+"dung và đoạn trích tự động được thay bằng một thông báo ngắn. Ứng dụng di "
+"động, front-end headless, trình đọc feed và các plugin đọc bài viết theo "
+"cách đó sẽ nhận thông báo này thay vì nội dung. Người dùng có quyền sửa "
+"bài và các vai trò được loại trừ vẫn nhận nội dung thật."
+
+#: includes/hooks.php:176
+msgid "This content is protected and is only available on the website."
+msgstr "Nội dung này được bảo vệ và chỉ có trên website."

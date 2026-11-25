@@ -4,11 +4,11 @@ Tags: content protection, anti-copy, copy protection, encryption, anti-scraping
 Requires at least: 5.7
 Tested up to: 7.2
 Requires PHP: 7.4
-Stable tag: 1.10
+Stable tag: 1.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Protect your content from copying, scraping, and inspection using JS blocking, keyword cloaking, noise injection, and optional full encryption.
+Protect content from copying, scraping and inspection with JS blocking, keyword cloaking, noise injection, optional encryption or lazy loading.
 
 == Description ==
 
@@ -27,6 +27,10 @@ GitHub repository: [https://github.com/brokensmile2103/init-content-protector](h
   - Encryption is done fresh on every request (about a third of a millisecond), so members-only or per-user content can never be served to the wrong visitor from a cache
   - Fails open gracefully on hosts missing OpenSSL/PBKDF2 support, instead of breaking the page
   - Optional Headless Browser Detection: withholds decryption from sessions that look like Puppeteer/Playwright/Selenium, scored across several client-side automation signals so no single false-positive blocks a real visitor; verified search engine crawlers (Googlebot, Bingbot...) are let through by reverse DNS check
+- The WordPress REST API (`/wp-json/wp/v2/…`) and the RSS/Atom feeds no longer hand out the content of protected posts while Encrypt or Lazy Load is on: a short message replaces it
+- Lazy Load mode (lighter than encryption): the page is sent without the article, and a script fetches it through the REST API only after the visitor's browser has been verified — with a Retry button if the check fails
+  - Stateless verification (short-lived signed token with a minimum wait, nothing stored in the database) that works behind full-page caches
+  - The browser-side verification module (`window.InitContentVerify`) and its PHP counterpart are reusable by other code
 - Keyword cloaking using CSS pseudo-elements (whole words only, Unicode aware, never inside HTML attributes or code blocks)
 - Invisible noise injection to confuse crawlers — class names are generated for each post and rotate daily, the hiding rules are printed in the page itself, and look-alike decoy elements wrap some real words, so noise cannot be stripped with a fixed list; only ever injected into plain text, never inside HTML tags or inside `<script>`, `<style>`, `<pre>`, `<select>`, `<svg>`, and similar elements; injection rate is configurable (1–50%)
 - Automatic AMP detection — protection is skipped on AMP endpoints instead of producing invalid markup
@@ -94,6 +98,24 @@ They're designed not to, but both are heuristic and best-effort like every other
 = What does Headless Browser Detection do, and when should I use it? =
 It's aimed at automated scraping tools built on Puppeteer, Playwright, or Selenium — the kind that run a real browser engine and read the DOM after your page renders, which the plugin's other protections (encryption, noise, keyword cloaking) can't stop on their own once the page is decrypted for them too. When enabled, it scores several client-side automation signals together (no single signal decides on its own) and, if the session looks automated, simply never triggers decryption — the content stays on its loading skeleton instead of appearing in the DOM. It only takes effect when Content Protection Mode is set to Encrypt, and it's off by default. Like every automation signal, well-configured "stealth" tooling can evade individual checks — this raises the cost of scraping, it doesn't guarantee blocking it.
 
+= Does it also protect the WordPress REST API and the feeds? =
+Yes, since 1.11. The same goes for the listings (home page, archives, search results) when your theme prints the full content there; they are protected like a single post. Theme excerpts and SEO descriptions are left as they are on purpose (a short teaser, used by search engines and social cards; the `init_plugin_suite_content_protector_skip_secondary_content` filter changes that). Not covered: AMP pages (AMP does not allow the scripts this plugin needs, so the protection is switched off there), and endpoints that other plugins register themselves. With Encrypt Content or Lazy Load on, every REST endpoint that renders post content (`/wp-json/wp/v2/posts`, pages, custom post types, revisions and autosaves) returns a short message instead of `content.rendered`, and instead of an automatic excerpt (a manual excerpt is left as is). Users who can edit the post and the excluded roles still get the real content, and password-protected posts are not changed. Apps, headless front ends and plugins that read the article through the REST API will get the message; use the `init_plugin_suite_content_protector_rest_hide_content` filter to let a request through, and `init_plugin_suite_content_protector_rest_content_message` to change the text. The RSS/Atom feeds follow the same rule, and their excerpt (description) is replaced as well, a manual excerpt included.
+
+= What is Lazy Load mode, and how is it different from Encrypt? =
+Lazy Load (new in 1.11) is the lighter way to keep your article out of the page. The HTML is sent with a loading skeleton only. After the page has loaded, a script verifies the browser and fetches the article through the REST API, then puts it in place. Nothing is encrypted, so there is no decryption key and no Web Crypto or CryptoJS involved, and the page itself is the same for every visitor, so it caches well.
+
+It stops anything that only reads the HTML, such as wget, curl or a basic scraper, and crawlers that do not run JavaScript. If the check fails (a network error, for example) the visitor sees a message with a **Retry** button instead of an endless skeleton. Keyword cloaking and noise injection still apply: their CSS is delivered together with the content, so it always matches. Like Encrypt mode it hides the content from search engines that do not run JavaScript; see the SEO question above, and test with Search Console.
+
+Scripts inside the article are not executed (as in Encrypt mode). Plugins that need the real text can listen for the `init-content-decrypted` event, which Lazy Load fires too (`event.detail.mode` is `lazy`).
+
+= What does "verified" mean in Lazy Load mode? =
+Before the article is sent, the request must pass these checks: it comes from a page of your site (the page's REST nonce, or the browser's `Sec-Fetch-Site: same-origin` header, which is also what makes pages served from a full-page cache work after the nonce has expired, or a search engine crawler confirmed by reverse DNS); the Headless Browser Detection option, if enabled, did not flag the session; and the browser holds a short-lived token that was issued at least a second earlier. The token is signed with your site's secret keys, bound to one post and valid for 5 minutes, so nothing is stored in your database.
+
+This is a deterrent, not a captcha: a script written specifically against your site can still do the same steps. Like the rest of the plugin it raises the cost of scraping and cannot stop a determined visitor. The route is not rate-limited by the plugin, for the same reason as the Enhanced key route.
+
+= Can I reuse the verification module in my own code? =
+Yes. In the browser, `window.InitContentVerify` offers `request( path, options )` (a same-site REST call that sends the nonce and retries once without it when the nonce has expired in a cached page), `getToken( postId )`, `gate()` (the Headless Browser Detection result), `showNotice( element, kind, onRetry )` (the message with the Retry button), `render( element, html, css )` and more. Enhanced key delivery and Lazy Load both use it. In PHP, `init_plugin_suite_content_protector_verify_issue_token( $scope, $subject )` and `init_plugin_suite_content_protector_verify_check_token( $token, $scope, $subject )` issue and check the signed tokens, and `init_plugin_suite_content_protector_verify_request( $request, $settings )` runs the same-site check on a REST request. Developers can change the minimum wait and the lifetime of a token with the `init_plugin_suite_content_protector_verify_min_age` (default 1 second) and `init_plugin_suite_content_protector_verify_ttl` (default 300 seconds) filters.
+
 = Does Encrypt mode still need CryptoJS? =
 Not on HTTPS sites. Since 1.7 decryption uses the browser's built-in Web Crypto API, which is much faster and adds no extra download. The bundled CryptoJS file (about 60 KB) is only loaded on sites not served over HTTPS (where browsers disable Web Crypto), or on demand in the rare browser without Web Crypto support. Developers can force it either way with the `init_plugin_suite_content_protector_load_cryptojs` filter.
 
@@ -151,11 +173,26 @@ Init AntiSnap 6.0 only reacts to repeated, equally sized scroll steps made by sc
 
 == Screenshots ==
 
-1. **Content Protection** – Post types, protection scope (all posts or only switched-on posts), encryption mode, loading skeleton color scheme, encryption key, key delivery, headless browser detection, verified search engine crawlers, visitor IP detection, content selector with auto-detect, and JavaScript content protection.
+1. **Content Protection** – Post types, protection scope (all posts or only switched-on posts), encryption or lazy load mode, loading skeleton color scheme, encryption key, key delivery, headless browser detection, verified search engine crawlers, visitor IP detection, content selector with auto-detect, and JavaScript content protection.
 2. **Advanced Browser Protection (Experimental)** – Advanced DevTools blocking, anti-screenshot protection (Init AntiSnap), noise injection and its rate, and sensitive keywords to obscure.
 3. **Global Exceptions** – User roles excluded from every protection layer, and important notes on using the plugin.
 
 == Changelog ==
+
+= 1.11 – November 25, 2026 =
+- New: **Lazy Load** option for Content Protection Mode, a lighter alternative to Encrypt Content. The page is sent without the article, and a script fetches it through the REST API once the visitor's browser has been verified. Nothing is encrypted and no key is involved. Works with Headless Browser Detection and verified search engine crawlers, keyword cloaking and noise injection (their CSS is delivered together with the content, so the rotating noise class names can never mismatch a cached page), multi-page posts and the `<!--more-->` tag. Password-protected posts keep their password form.
+- Fixed: while Encrypt Content or Lazy Load is on, the WordPress REST API returned the full article (`content.rendered`) of protected posts through `/wp-json/wp/v2/posts/<id>` and its siblings, bypassing every other layer. Every REST endpoint that renders post content (posts, pages, custom post types, revisions, autosaves) now returns a short message instead of the content, and of an automatic excerpt (a manual excerpt is left alone). Users who can edit the post, and the excluded roles, still get the real content; password-protected posts are unchanged. A warning about it was added to Content Protection Mode in the settings.
+- Fixed: RSS and Atom feeds published the full text and the excerpt (`<description>` / Atom `<summary>`, which the "Summary" feed setting prints and which holds the whole article of a short post) of protected posts. Both now carry a short message instead, a manual excerpt included.
+- Fixed: a theme that prints the full content in a listing (home page, archives, search results) showed protected posts unprotected, because only single views were protected. Listings are now protected the same way (the visible placeholder is filled in by the same script). Theme excerpts are unchanged on purpose.
+- New filters: `init_plugin_suite_content_protector_rest_hide_content` (opt out per post or request) and `init_plugin_suite_content_protector_rest_content_message`.
+- New: browser verification module. A stateless, HMAC-signed token (bound to one post, valid for 5 minutes, usable after a short wait) is issued by the new REST route `/wp-json/init-content-protector/v1/verify` and required by `/wp-json/init-content-protector/v1/content/<id>`. Nothing is stored, so there are no new transients or options rows, and it works behind full-page caches. The browser side is `window.InitContentVerify` (`assets/js/verify.js`) and the server side is `includes/verify.php`; both can be reused by other code.
+- New: when the content cannot be loaded, the loading skeleton is replaced by a message with a **Retry** button (also for Enhanced key delivery in Encrypt mode). A session withheld by Headless Browser Detection gets a message without a button in Lazy Load mode.
+- New: the `init-content-decrypted` event is also fired by Lazy Load, and `event.detail.mode` tells `encrypt` or `lazy`. `init-content-payload-ready` is fired for Lazy Load placeholders too.
+- Fixed: Enhanced key delivery could leave a page served from a full-page cache on the loading skeleton once its REST nonce had expired. WordPress rejects an expired nonce before the plugin sees the request, and the retry in 1.7–1.10 still sent it. The shared module now retries without the nonce, and the same-site check accepts the request.
+- Headless Browser Detection and Allow Verified Search Engine Crawlers now also cover Lazy Load mode.
+- The skeleton stylesheet is also loaded in Lazy Load mode, and stops the shimmer when loading has failed.
+- New filters: `init_plugin_suite_content_protector_verify_min_age`, `init_plugin_suite_content_protector_verify_ttl`.
+- Updated Vietnamese translation.
 
 = 1.10 – November 20, 2026 =
 - New: **Protection Scope** setting. Choose **Only posts where protection is turned on** to protect nothing by default and switch protection on per post, with a **Content Protection** box in the post editor (classic and block editor) for the selected post types, **Turn content protection on / off** bulk actions and a lock column on the post list. In this mode JavaScript Content Protection, Advanced DevTools Blocking and Anti-Screenshot Protection also only load on protected posts. The default scope, all posts of the selected post types, works exactly as before.
@@ -293,8 +330,3 @@ This plugin optionally uses "Init AntiSnap 6.0" by Init HTML (MIT licensed) for 
 
 This plugin is licensed under the GPLv2 or later.  
 You are free to use, modify, and distribute it under the same license.
-
-== Upgrade Notice ==
-
-= 1.10 =
-New "Only posts where protection is turned on" scope with a per-post switch, and generated noise class names that rotate daily. Purging your page cache after updating is recommended.

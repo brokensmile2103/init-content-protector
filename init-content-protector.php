@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Init Content Protector
  * Plugin URI: https://inithtml.com/plugin/init-content-protector/
- * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption.
- * Version: 1.10
+ * Description: A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, full content encryption, and lazy loading after browser verification.
+ * Version: 1.11
  * Author: Init HTML
  * Author URI: https://inithtml.com/
  * Text Domain: init-content-protector
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.10' );
+define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION', '1.11' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_SLUG', 'init-content-protector' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_OPTION', 'init_plugin_suite_content_protector_settings' );
 define( 'INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_FILE', __FILE__ );
@@ -36,6 +36,7 @@ require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'utils.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'settings-page.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'post-meta.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'crawler-verify.php';
+require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'verify.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'rest-api.php';
 require_once INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_INCLUDES_PATH . 'hooks.php';
 
@@ -94,6 +95,130 @@ function init_plugin_suite_content_protector_should_preload_cryptojs() {
 }
 
 /**
+ * Enqueue the optional headless browser guard (once per request).
+ *
+ * Shared by Encrypt and Lazy Load mode. The guard exposes
+ * window.InitContentHeadlessCheck, which the scripts of both modes await.
+ *
+ * @since 1.11
+ *
+ * @param array $settings Settings array.
+ * @return string[] Handles the calling script must depend on (empty when the guard is off).
+ */
+function init_plugin_suite_content_protector_enqueue_headless_guard( $settings ) {
+	if ( ! init_plugin_suite_content_protector_is_enabled( $settings, 'headless_detect' ) ) {
+		return array();
+	}
+
+	if ( ! wp_script_is( 'init-content-protector-headless-detect', 'enqueued' ) ) {
+		wp_enqueue_script(
+			'init-content-protector-headless-detect',
+			INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/headless-detect.js',
+			array(),
+			INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'init-content-protector-headless-detect',
+			'InitHeadlessDetectData',
+			array(
+				'debug'      => current_user_can( 'manage_options' ),
+				// Only a session that already looks automated calls this
+				// route. It asks the server (never cached, so it also works
+				// behind a full-page cache) whether the request comes from a
+				// search engine crawler verified by reverse DNS.
+				'crawlerUrl' => init_plugin_suite_content_protector_is_enabled( $settings, 'headless_allow_crawlers' )
+					? esc_url_raw( rest_url( 'init-content-protector/v1/crawler' ) )
+					: '',
+			)
+		);
+	}
+
+	return array( 'init-content-protector-headless-detect' );
+}
+
+/**
+ * Enqueue the browser verification module and its data (once per request).
+ *
+ * The browser object window.InitContentVerify is the shared REST client of Enhanced key delivery
+ * and Lazy Load mode: it sends the nonce, retries a request whose nonce has
+ * expired in a cached page, fetches verification tokens and draws the
+ * "Retry" notice. See assets/js/verify.js.
+ *
+ * @since 1.11
+ *
+ * @return string Script handle to depend on.
+ */
+function init_plugin_suite_content_protector_enqueue_verify_assets() {
+	static $done = false;
+
+	if ( $done ) {
+		return 'init-content-protector-verify';
+	}
+	$done = true;
+
+	wp_enqueue_script(
+		'init-content-protector-verify',
+		INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/verify.js',
+		array(),
+		INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+		true
+	);
+
+	wp_localize_script(
+		'init-content-protector-verify',
+		'InitContentVerifyData',
+		array(
+			'root'  => esc_url_raw( rest_url( 'init-content-protector/v1' ) ),
+			'nonce' => wp_create_nonce( 'wp_rest' ),
+			'debug' => current_user_can( 'manage_options' ),
+			'i18n'  => array(
+				'failed'  => __( 'The content could not be loaded.', 'init-content-protector' ),
+				'blocked' => __( 'Your browser could not be verified, so the content is not shown.', 'init-content-protector' ),
+				'gone'    => __( 'This content is no longer available. Please reload the page.', 'init-content-protector' ),
+				'retry'   => __( 'Retry', 'init-content-protector' ),
+			),
+		)
+	);
+
+	return 'init-content-protector-verify';
+}
+
+/**
+ * Enqueue the Lazy Load script (once per request).
+ *
+ * Like the decrypt assets, this is idempotent so it can run both from
+ * wp_enqueue_scripts and lazily from the content filter.
+ *
+ * @since 1.11
+ *
+ * @param array $settings Settings array.
+ * @return void
+ */
+function init_plugin_suite_content_protector_enqueue_lazy_assets( $settings ) {
+	static $done = false;
+
+	if ( $done ) {
+		return;
+	}
+	$done = true;
+
+	init_plugin_suite_content_protector_enqueue_noise_style();
+
+	$deps   = init_plugin_suite_content_protector_enqueue_headless_guard( $settings );
+	$deps[] = init_plugin_suite_content_protector_enqueue_verify_assets();
+
+	wp_enqueue_script(
+		'init-content-protector-lazy',
+		INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/lazy.js',
+		$deps,
+		INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
+		true
+	);
+}
+
+/**
  * Enqueue decryption scripts and their data (once per request).
  *
  * @param array $settings Settings array.
@@ -127,33 +252,14 @@ function init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, 
 
 	// Optional headless/automation-browser guard. decrypt.js awaits
 	// window.InitContentHeadlessCheck before fetching the key or decrypting.
-	// Only meaningful in Encrypt mode: in "No Protection" mode the real
-	// content is already in the HTML before any JS runs.
-	if ( init_plugin_suite_content_protector_is_enabled( $settings, 'headless_detect' ) ) {
-		wp_enqueue_script(
-			'init-content-protector-headless-detect',
-			INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_ASSETS_URL . 'js/headless-detect.js',
-			array(),
-			INIT_PLUGIN_SUITE_CONTENT_PROTECTOR_VERSION,
-			true
-		);
+	// Only meaningful in Encrypt and Lazy Load mode: in "No Protection" mode
+	// the real content is already in the HTML before any JS runs.
+	$decrypt_deps = array_merge( $decrypt_deps, init_plugin_suite_content_protector_enqueue_headless_guard( $settings ) );
 
-		wp_localize_script(
-			'init-content-protector-headless-detect',
-			'InitHeadlessDetectData',
-			array(
-				'debug'      => current_user_can( 'manage_options' ),
-				// Only a session that already looks automated calls this
-				// route. It asks the server (never cached, so it also works
-				// behind a full-page cache) whether the request comes from a
-				// search engine crawler verified by reverse DNS.
-				'crawlerUrl' => init_plugin_suite_content_protector_is_enabled( $settings, 'headless_allow_crawlers' )
-					? esc_url_raw( rest_url( 'init-content-protector/v1/crawler' ) )
-					: '',
-			)
-		);
-
-		$decrypt_deps[] = 'init-content-protector-headless-detect';
+	// Enhanced delivery fetches the key through the shared verification module.
+	$rest_delivery = isset( $settings['encrypt_delivery'] ) && 'rest' === $settings['encrypt_delivery'];
+	if ( $rest_delivery ) {
+		$decrypt_deps[] = init_plugin_suite_content_protector_enqueue_verify_assets();
 	}
 
 	wp_enqueue_script(
@@ -187,7 +293,7 @@ function init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, 
 	// 'inline' (default): key is base64'd into the page. Simple, soft deterrent.
 	// 'rest' (Enhanced): key is fetched from a REST endpoint after the
 	// headless check passes, so it never appears in cached/static HTML.
-	if ( isset( $settings['encrypt_delivery'] ) && 'rest' === $settings['encrypt_delivery'] ) {
+	if ( $rest_delivery ) {
 		$data['rest_url'] = esc_url_raw( rest_url( 'init-content-protector/v1/key' ) );
 		$data['nonce']    = wp_create_nonce( 'wp_rest' );
 		$data['post_id']  = $post_id ? (int) $post_id : (int) get_the_ID();
@@ -209,6 +315,7 @@ function init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, 
 
 /**
  * Enqueue the noise rules and skeleton CSS on protected singular views.
+ * Lazy Load mode (1.11) only needs the skeleton CSS.
  *
  * The noise rules of the queried post go into <head>, so the generated
  * classes are already hidden when the content is parsed (no flash).
@@ -223,9 +330,10 @@ function init_plugin_suite_content_protector_maybe_enqueue_noise_css() {
 	}
 
 	$noise   = init_plugin_suite_content_protector_is_enabled( $settings, 'inject_noise' );
+	$lazy    = init_plugin_suite_content_protector_is_lazy_mode( $settings );
 	$encrypt = init_plugin_suite_content_protector_is_encrypt_mode( $settings );
 
-	if ( ! $noise && ! $encrypt ) {
+	if ( ! $noise && ! $encrypt && ! $lazy ) {
 		return;
 	}
 
@@ -234,11 +342,13 @@ function init_plugin_suite_content_protector_maybe_enqueue_noise_css() {
 		return;
 	}
 
-	if ( $noise ) {
+	// Lazy Load mode ships the noise rules together with the content, so
+	// they always match the class names of that response.
+	if ( $noise && ! $lazy ) {
 		init_plugin_suite_content_protector_ensure_noise_css( $post->ID );
 	}
 
-	if ( $encrypt ) {
+	if ( $encrypt || $lazy ) {
 		init_plugin_suite_content_protector_enqueue_noise_style();
 	}
 }
@@ -266,6 +376,31 @@ function init_plugin_suite_content_protector_enqueue_encryption() {
 	init_plugin_suite_content_protector_enqueue_decrypt_assets( $settings, $post->ID );
 }
 add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_encryption', 100 );
+
+/**
+ * Enqueue the Lazy Load script on protected singular views.
+ *
+ * @since 1.11
+ *
+ * @return void
+ */
+function init_plugin_suite_content_protector_enqueue_lazy() {
+	$settings = init_plugin_suite_content_protector_get_settings();
+
+	if ( ! init_plugin_suite_content_protector_is_lazy_mode( $settings )
+		|| init_plugin_suite_content_protector_should_skip_frontend( $settings )
+	) {
+		return;
+	}
+
+	$post = init_plugin_suite_content_protector_get_protected_queried_post( $settings );
+	if ( ! $post || post_password_required( $post ) ) {
+		return;
+	}
+
+	init_plugin_suite_content_protector_enqueue_lazy_assets( $settings );
+}
+add_action( 'wp_enqueue_scripts', 'init_plugin_suite_content_protector_enqueue_lazy', 100 );
 
 /**
  * Enqueue the basic JavaScript content protection.

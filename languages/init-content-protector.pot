@@ -2,14 +2,14 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Init Content Protector 1.10\n"
+"Project-Id-Version: Init Content Protector 1.11\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/init-content-protector\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-20T02:50:00+07:00\n"
+"POT-Creation-Date: 2026-11-25T10:55:00+07:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: init-content-protector\n"
@@ -27,7 +27,7 @@ msgstr ""
 
 #. Description of the plugin
 #: init-content-protector.php
-msgid "A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, and full content encryption."
+msgid "A lightweight plugin to protect your post content from copy, scraping, and inspection. Features include copy protection, keyword cloaking, noise injection, full content encryption, and lazy loading after browser verification."
 msgstr ""
 
 #. Author of the plugin
@@ -200,7 +200,15 @@ msgid "Encrypt Content (decode via JS)"
 msgstr ""
 
 #: includes/settings-page.php:232
+msgid "Lazy Load (hidden until the browser is verified)"
+msgstr ""
+
+#: includes/settings-page.php:232
 msgid "Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access."
+msgstr ""
+
+#: includes/settings-page.php:236
+msgid "Lazy Load is the lighter option: the page is sent without the article, and a script fetches it through the REST API once the visitor's browser has been verified. Nothing is encrypted, no decryption key is involved, and if the check fails the visitor gets a Retry button. It stops plain wget/curl scrapers and HTML-only crawlers, and the page stays cache friendly. Scripts inside the article are not executed, as in Encrypt mode."
 msgstr ""
 
 #: includes/settings-page.php:234
@@ -261,11 +269,11 @@ msgid "Enable Headless Browser Detection"
 msgstr ""
 
 #: includes/settings-page.php:296
-msgid "Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
+msgid "Withhold the content from sessions that look like an automated browser (Puppeteer, Playwright, Selenium)."
 msgstr ""
 
 #: includes/settings-page.php:299
-msgid "Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in \"No Protection\" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
+msgid "Only takes effect when Content Protection Mode is set to Encrypt or Lazy Load — it has no effect in \"No Protection\" mode, since there is no decryption or loading step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own."
 msgstr ""
 
 #: includes/settings-page.php:301
@@ -458,4 +466,40 @@ msgstr ""
 
 #: init-content-protector.php:377
 msgid "⚠️ Automated screenshot or scraping tool detected. Action blocked!"
+msgstr ""
+
+#: init-content-protector.php:187
+msgid "The content could not be loaded."
+msgstr ""
+
+#: init-content-protector.php:188
+msgid "Your browser could not be verified, so the content is not shown."
+msgstr ""
+
+#: init-content-protector.php:189
+msgid "This content is no longer available. Please reload the page."
+msgstr ""
+
+#: init-content-protector.php:190
+msgid "Retry"
+msgstr ""
+
+#: includes/verify.php:131
+msgid "Please try again in a moment."
+msgstr ""
+
+#: includes/rest-api.php:207
+msgid "This content is protected and is not available through the REST API."
+msgstr ""
+
+#: includes/settings-page.php:244
+msgid "Warning:"
+msgstr ""
+
+#: includes/settings-page.php:245
+msgid "With Encrypt Content or Lazy Load on, the content of protected posts is also withheld from the other places that would hand it out: every WordPress REST API endpoint that renders post content (/wp-json/wp/v2/…, including pages, custom post types and revisions) and the RSS/Atom feeds. The content, and any automatic excerpt, is replaced by a short message there. Mobile apps, headless front ends, feed readers and plugins that read the article that way will receive that message instead. Users who can edit the post and the excluded roles still get the real content."
+msgstr ""
+
+#: includes/hooks.php:176
+msgid "This content is protected and is only available on the website."
 msgstr ""

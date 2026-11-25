@@ -22,8 +22,14 @@
  * - `init-content-decrypted`: fired after a block was successfully decrypted
  *   and inserted into the page. Dispatched on the element that now holds the
  *   content and bubbles to `document` and `window`.
- *   `event.detail.element` is that element, `event.detail.postId` the post ID.
+ *   `event.detail.element` is that element, `event.detail.postId` the post ID,
+ *   `event.detail.mode` is 'encrypt' (1.11; Lazy Load mode fires it with 'lazy').
  *   Never fired when decryption fails, is withheld, or nothing was inserted.
+ *
+ * 1.11: Enhanced key delivery goes through the shared verification module
+ * (assets/js/verify.js, `window.InitContentVerify`), which also retries a
+ * request whose nonce expired in a cached page. When the key cannot be
+ * fetched, the loading skeleton is replaced by a message with a Retry button.
  *
  * Timing: the render still happens no earlier than `delay` ms after
  * DOMContentLoaded (anti-scraper measure, default 1000), but the headless
@@ -236,6 +242,11 @@
 	/* ------------------------------------------------------------------ */
 
 	function fetchKey( postId, credentials ) {
+		// 1.11: the shared module sends the nonce and handles an expired one.
+		if ( window.InitContentVerify && 'omit' !== credentials ) {
+			return window.InitContentVerify.request( data.rest_url + '/' + postId );
+		}
+
 		return window.fetch( data.rest_url + '/' + postId, {
 			credentials: credentials,
 			headers: { 'X-WP-Nonce': data.nonce || '' },
@@ -257,7 +268,7 @@
 		// page gets a guest nonce, which WordPress rejects for a cookie
 		// session. The key is not user-specific, so a guest request is fine.
 		return fetchKey( postId, 'same-origin' ).catch( function ( status ) {
-			if ( 403 === status ) {
+			if ( 403 === status && ! window.InitContentVerify ) {
 				return fetchKey( postId, 'omit' );
 			}
 			return Promise.reject( status );
@@ -416,7 +427,8 @@
 
 		dispatch( 'init-content-payload-ready' );
 
-		headlessCheck.then( function ( suspectedHeadless ) {
+		// Named so the Retry button can run it again (1.11).
+		headlessCheck.then( function start( suspectedHeadless ) {
 			if ( suspectedHeadless ) {
 				log( 'warn', 'Headless/automation browser suspected — decryption withheld for this session.' );
 				return;
@@ -455,7 +467,7 @@
 						// is already in the DOM. Fired once per protected block.
 						dispatch(
 							'init-content-decrypted',
-							{ element: target, postId: job.postId },
+							{ element: target, postId: job.postId, mode: 'encrypt' },
 							target
 						);
 					} ).catch( function ( err ) {
@@ -467,6 +479,19 @@
 				} );
 			} ).catch( function ( err ) {
 				log( 'error', 'Failed to fetch decryption key:', err );
+
+				// 1.11: replace the endless skeleton by a message and a Retry button.
+				var verify = window.InitContentVerify;
+				if ( ! verify ) {
+					return;
+				}
+				jobs.forEach( function ( job ) {
+					if ( job.wrapper ) {
+						verify.showNotice( job.wrapper, verify.errorKind( err ), function () {
+							start( false );
+						} );
+					}
+				} );
 			} );
 		} );
 	} );

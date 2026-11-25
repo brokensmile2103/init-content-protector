@@ -1,6 +1,9 @@
 /*
  * Init Content Protector: loading skeleton and noscript notice shown in
- * place of encrypted content until it is decrypted.
+ * place of encrypted or lazy loaded content until it is shown.
+ *
+ * 1.11: the notice with the Retry button (.icp-notice) shares the noscript
+ * colors, so the same custom properties and color schemes apply to it.
  *
  * 1.10: every color is a CSS custom property, so a theme can restyle the
  * skeleton (for example for a dark mode) without fighting the selectors
@@ -72,7 +75,8 @@
     display: none !important;
 }
 
-.icp-noscript {
+.icp-noscript,
+.icp-notice {
     margin: 0 0 20px;
     padding: 12px 16px;
     border-left: 4px solid #d63638;
@@ -81,6 +85,34 @@
     background-color: var(--icp-noscript-bg, #fcf0f1);
     color: #50575e;
     color: var(--icp-noscript-color, #50575e);
+}
+
+/* Failed or withheld content (1.11): no endless shimmer, just the notice. */
+.icp-protected[data-icp-state="error"] .imc-skeleton-line {
+    display: none;
+}
+
+.icp-notice p {
+    margin: 0 0 10px;
+}
+
+.icp-notice p:last-child {
+    margin-bottom: 0;
+}
+
+.icp-retry {
+    padding: 6px 14px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.icp-retry:hover,
+.icp-retry:focus {
+    opacity: 0.8;
 }
 
 /* Dark scheme. Translucent white works on any dark background. */

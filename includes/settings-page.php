@@ -123,7 +123,7 @@ function init_plugin_suite_content_protector_sanitize_settings( $input ) {
 
 	$output['post_types']              = array_values( array_filter( array_map( 'sanitize_key', (array) ( $input['post_types'] ?? array() ) ) ) );
 	$output['protection_scope']        = 'selected' === ( $input['protection_scope'] ?? 'all' ) ? 'selected' : 'all';
-	$output['content_mode']            = in_array( $input['content_mode'] ?? 'none', array( 'none', 'encrypt' ), true ) ? ( $input['content_mode'] ?? 'none' ) : 'none';
+	$output['content_mode']            = in_array( $input['content_mode'] ?? 'none', array( 'none', 'encrypt', 'lazy' ), true ) ? ( $input['content_mode'] ?? 'none' ) : 'none';
 	$output['encrypt_key']             = isset( $input['encrypt_key'] ) ? sanitize_text_field( (string) $input['encrypt_key'] ) : '';
 	$output['encrypt_delivery']        = in_array( $input['encrypt_delivery'] ?? 'inline', array( 'inline', 'rest' ), true ) ? ( $input['encrypt_delivery'] ?? 'inline' ) : 'inline';
 	$output['headless_detect']         = $checkbox( 'headless_detect' );
@@ -226,13 +226,25 @@ function init_plugin_suite_content_protector_render_settings_page() {
 							<label>
 								<input type="radio" name="<?php echo esc_attr( $name ); ?>[content_mode]" value="encrypt" <?php checked( $content_mode, 'encrypt' ); ?> />
 								<?php esc_html_e( 'Encrypt Content (decode via JS)', 'init-content-protector' ); ?>
+							</label><br>
+							<label>
+								<input type="radio" name="<?php echo esc_attr( $name ); ?>[content_mode]" value="lazy" <?php checked( $content_mode, 'lazy' ); ?> />
+								<?php esc_html_e( 'Lazy Load (hidden until the browser is verified)', 'init-content-protector' ); ?>
 							</label>
 						</fieldset>
 						<p class="description">
 							<?php esc_html_e( 'Encrypting the content helps prevent crawlers from reading raw HTML. Do not enable if you need SEO access.', 'init-content-protector' ); ?>
 							<br>
+							<?php esc_html_e( 'Lazy Load is the lighter option: the page is sent without the article, and a script fetches it through the REST API once the visitor\'s browser has been verified. Nothing is encrypted, no decryption key is involved, and if the check fails the visitor gets a Retry button. It stops plain wget/curl scrapers and HTML-only crawlers, and the page stays cache friendly. Scripts inside the article are not executed, as in Encrypt mode.', 'init-content-protector' ); ?>
+							<br>
 							<?php esc_html_e( 'Decryption uses the browser\'s built-in Web Crypto API. The bundled CryptoJS fallback (about 60 KB) is only loaded on sites not served over HTTPS, or on demand in the rare browser without Web Crypto support.', 'init-content-protector' ); ?>
 						</p>
+						<div class="notice notice-warning inline">
+							<p>
+								<strong><?php esc_html_e( 'Warning:', 'init-content-protector' ); ?></strong>
+								<?php esc_html_e( 'With Encrypt Content or Lazy Load on, the content of protected posts is also withheld from the other places that would hand it out: every WordPress REST API endpoint that renders post content (/wp-json/wp/v2/…, including pages, custom post types and revisions) and the RSS/Atom feeds. The content, and any automatic excerpt, is replaced by a short message there. Mobile apps, headless front ends, feed readers and plugins that read the article that way will receive that message instead. Users who can edit the post and the excluded roles still get the real content.', 'init-content-protector' ); ?>
+							</p>
+						</div>
 					</td>
 				</tr>
 
@@ -293,10 +305,10 @@ function init_plugin_suite_content_protector_render_settings_page() {
 					<td>
 						<label>
 							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>[headless_detect]" id="headless_detect" value="1" <?php checked( $option['headless_detect'], '1' ); ?>>
-							<?php esc_html_e( 'Withhold decryption from sessions that look like an automated browser (Puppeteer, Playwright, Selenium).', 'init-content-protector' ); ?>
+							<?php esc_html_e( 'Withhold the content from sessions that look like an automated browser (Puppeteer, Playwright, Selenium).', 'init-content-protector' ); ?>
 						</label>
 						<p class="description">
-							<?php esc_html_e( 'Only takes effect when Content Protection Mode is set to Encrypt — it has no effect in "No Protection" mode, since there is no decryption step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own.', 'init-content-protector' ); ?>
+							<?php esc_html_e( 'Only takes effect when Content Protection Mode is set to Encrypt or Lazy Load — it has no effect in "No Protection" mode, since there is no decryption or loading step left to withhold. Scores several client-side automation signals together, so no single false-positive flag can block a real visitor on its own.', 'init-content-protector' ); ?>
 							<br>
 							<?php esc_html_e( 'This raises the cost of automated scraping but cannot detect every setup — well-configured "stealth" automation tooling can evade individual signals. Treat it as an extra deterrent layer, not a guarantee.', 'init-content-protector' ); ?>
 						</p>
